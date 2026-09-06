@@ -1,3 +1,10 @@
+
+import Announcements from "../components/Announcements";
+import Documents from "../components/Documents";
+import Gallery from "../components/Gallery";
+import Sponsors from "../components/Sponsors";
+import Schedule from "../components/Schedule";
+
 function Home() {
   return (
     <>
@@ -123,6 +130,14 @@ function Home() {
         </div>
       </section>
 
+
+<Announcements />
+
+<Documents />
+<Gallery />
+<Sponsors />
+
+
     {/* Presenters */}
 <section
   id="presenters"
@@ -224,134 +239,7 @@ function Home() {
   </div>
 </section>
 
-{/* Schedule */}
-<section
-  id="schedule"
-  className="content-section schedule-section"
->
-  <div className="content-container">
-
-    <div className="section-heading-row">
-      <div>
-        <p className="section-label">PROGRAM</p>
-
-        <h2>Symposium Schedule</h2>
-
-        <p>
-          Explore the program, session times, presentation topics,
-          and activities planned for MCS Symposium 2026.
-        </p>
-      </div>
-
-      <a
-        href="#schedule"
-        className="button button-primary"
-      >
-        Full Program
-      </a>
-    </div>
-
-    <div className="schedule-list">
-
-      <article className="schedule-item">
-        <div className="schedule-time">
-          <strong>09:00</strong>
-          <span>AM</span>
-        </div>
-
-        <div className="schedule-details">
-          <span className="schedule-type">
-            OPENING
-          </span>
-
-          <h3>Welcome and Opening</h3>
-
-          <p>
-            Opening remarks and introduction to MCS Symposium 2026.
-          </p>
-        </div>
-
-        <div className="schedule-location">
-          Main Venue
-        </div>
-      </article>
-
-      <article className="schedule-item">
-        <div className="schedule-time">
-          <strong>10:00</strong>
-          <span>AM</span>
-        </div>
-
-        <div className="schedule-details">
-          <span className="schedule-type">
-            KEYNOTE
-          </span>
-
-          <h3>Keynote Presentation</h3>
-
-          <p>
-            Featured presentation exploring current developments
-            in mathematics and computing science.
-          </p>
-        </div>
-
-        <div className="schedule-location">
-          Main Venue
-        </div>
-      </article>
-
-      <article className="schedule-item">
-        <div className="schedule-time">
-          <strong>11:30</strong>
-          <span>AM</span>
-        </div>
-
-        <div className="schedule-details">
-          <span className="schedule-type">
-            PRESENTATION
-          </span>
-
-          <h3>Research and Innovation Session</h3>
-
-          <p>
-            Presentations highlighting research, projects, and
-            innovative ideas.
-          </p>
-        </div>
-
-        <div className="schedule-location">
-          Main Venue
-        </div>
-      </article>
-
-      <article className="schedule-item">
-        <div className="schedule-time">
-          <strong>01:30</strong>
-          <span>PM</span>
-        </div>
-
-        <div className="schedule-details">
-          <span className="schedule-type">
-            PANEL
-          </span>
-
-          <h3>Discussion and Collaboration</h3>
-
-          <p>
-            An opportunity for presenters and participants to
-            exchange ideas and perspectives.
-          </p>
-        </div>
-
-        <div className="schedule-location">
-          Main Venue
-        </div>
-      </article>
-
-    </div>
-
-  </div>
-</section>
+<Schedule />
 
 {/* Contact */}
 <section
@@ -418,5 +306,9 @@ function Home() {
     </>
   );
 }
+
+
+
+
 
 export default Home;
