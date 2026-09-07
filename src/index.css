@@ -3324,6 +3324,8 @@ select {
   border: 0;
   border-radius: 9px;
   padding: 0.7rem 1rem;
+  background: #0b3d62;
+  color: #ffffff;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -3331,6 +3333,11 @@ select {
     transform 0.15s ease,
     opacity 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+.admin-logout-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .admin-primary-button {
