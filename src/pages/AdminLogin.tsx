@@ -127,7 +127,7 @@ window.location.href = "/admin/dashboard";
             </button>
           </form>
 
-          <a href="#home" className="admin-back-link">
+          <a href="/#home" className="admin-back-link">
             ← Return to symposium website
           </a>
         </div>

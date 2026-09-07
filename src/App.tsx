@@ -1,53 +1,70 @@
+import { lazy, Suspense } from "react";
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
-import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
-import ScheduleManager from "./pages/ScheduleManager";
-import PresenterManager from "./pages/PresenterManager";
-import AnnouncementManager from "./pages/AnnouncementManager";
-import DocumentManager from "./pages/DocumentManager";
-import GalleryManager from "./pages/GalleryManager";
-import SponsorManager from "./pages/SponsorManager";
-import EventManager from "./pages/EventManager";
+
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const ScheduleManager = lazy(() => import("./pages/ScheduleManager"));
+const PresenterManager = lazy(() => import("./pages/PresenterManager"));
+const AnnouncementManager = lazy(
+  () => import("./pages/AnnouncementManager"),
+);
+const DocumentManager = lazy(() => import("./pages/DocumentManager"));
+const GalleryManager = lazy(() => import("./pages/GalleryManager"));
+const SponsorManager = lazy(() => import("./pages/SponsorManager"));
+const EventManager = lazy(() => import("./pages/EventManager"));
 
 function App() {
   const currentPath = window.location.pathname;
 
-  if (currentPath === "/admin/presenters") {
-    return <PresenterManager />;
-  }
+  const renderAdminPage = () => {
+    if (currentPath === "/admin/presenters") {
+      return <PresenterManager />;
+    }
 
-if (currentPath === "/admin/announcements") {
-  return <AnnouncementManager />;
-}
+    if (currentPath === "/admin/announcements") {
+      return <AnnouncementManager />;
+    }
 
-if (currentPath === "/admin/documents") {
-  return <DocumentManager />;
-}
+    if (currentPath === "/admin/documents") {
+      return <DocumentManager />;
+    }
 
-if (currentPath === "/admin/gallery") {
-  return <GalleryManager />;
-}
+    if (currentPath === "/admin/gallery") {
+      return <GalleryManager />;
+    }
 
-if (currentPath === "/admin/sponsors") {
-  return <SponsorManager />;
-}
+    if (currentPath === "/admin/sponsors") {
+      return <SponsorManager />;
+    }
 
-if (currentPath === "/admin/event") {
-  return <EventManager />;
-}
+    if (currentPath === "/admin/event") {
+      return <EventManager />;
+    }
 
+    if (currentPath === "/admin/schedule") {
+      return <ScheduleManager />;
+    }
 
-  if (currentPath === "/admin/schedule") {
-    return <ScheduleManager />;
-  }
+    if (currentPath === "/admin/dashboard") {
+      return <AdminDashboard />;
+    }
 
-  if (currentPath === "/admin/dashboard") {
-    return <AdminDashboard />;
-  }
+    if (currentPath === "/admin") {
+      return <AdminLogin />;
+    }
 
-  if (currentPath === "/admin") {
-    return <AdminLogin />;
+    return null;
+  };
+
+  const isAdminRoute = currentPath.startsWith("/admin");
+
+  if (isAdminRoute) {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        {renderAdminPage()}
+      </Suspense>
+    );
   }
 
   return (
