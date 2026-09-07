@@ -9,6 +9,7 @@ export const documents: SymposiumDocument[] = [
     date: "2026-09-06",
     category: "Program",
     fileName: "official-program.pdf",
+    url: "",
     published: true,
   },
   {
@@ -19,6 +20,7 @@ export const documents: SymposiumDocument[] = [
     date: "2026-09-06",
     category: "Presenters",
     fileName: "presenter-guidelines.pdf",
+    url: "",
     published: true,
   },
   {
@@ -29,6 +31,7 @@ export const documents: SymposiumDocument[] = [
     date: "2026-09-06",
     category: "Event Information",
     fileName: "symposium-information.pdf",
+    url: "",
     published: true,
   },
 ];

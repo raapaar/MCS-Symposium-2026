@@ -4,5 +4,6 @@ export interface GalleryItem {
   description: string;
   image: string;
   category: string;
+  order: number;
   published: boolean;
 }

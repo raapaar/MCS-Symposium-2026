@@ -5,5 +5,6 @@ export interface SymposiumDocument {
   date: string;
   category: string;
   fileName: string;
+  url: string;
   published: boolean;
 }

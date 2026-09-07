@@ -5,5 +5,6 @@ export interface Sponsor {
   logo: string;
   website: string;
   category: string;
+  order: number;
   published: boolean;
 }

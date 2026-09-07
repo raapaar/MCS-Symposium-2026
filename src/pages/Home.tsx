@@ -4,6 +4,8 @@ import Documents from "../components/Documents";
 import Gallery from "../components/Gallery";
 import Sponsors from "../components/Sponsors";
 import Schedule from "../components/Schedule";
+import Presenters from "../components/Presenters";
+import EventInfo from "../components/EventInfo";
 
 function Home() {
   return (
@@ -49,30 +51,8 @@ function Home() {
   </div>
 </section>
 
-      {/* Event Information */}
-      <section className="event-information">
-        <div className="content-container event-grid">
-          <div className="event-item">
-            <span className="event-label">EVENT</span>
-            <strong>MCS Symposium 2026</strong>
-          </div>
-
-          <div className="event-item">
-            <span className="event-label">DEPARTMENT</span>
-            <strong>Mathematics &amp; Computing Science</strong>
-          </div>
-
-          <div className="event-item">
-            <span className="event-label">UNIVERSITY</span>
-            <strong>Divine Word University</strong>
-          </div>
-
-          <div className="event-item">
-            <span className="event-label">YEAR</span>
-            <strong>2026</strong>
-          </div>
-        </div>
-      </section>
+    {/* Event Information */}
+      <EventInfo />
 
       {/* About */}
       <section id="symposium" className="content-section">
@@ -138,106 +118,8 @@ function Home() {
 <Sponsors />
 
 
-    {/* Presenters */}
-<section
-  id="presenters"
-  className="content-section presenters-section"
->
-  <div className="content-container">
-
-    <div className="section-heading-row">
-      <div>
-        <p className="section-label">PRESENTERS</p>
-
-        <h2>Meet the Symposium Presenters</h2>
-
-        <p>
-          Discover the academics, researchers, students, industry
-          professionals, and invited guests contributing to the
-          MCS Symposium 2026.
-        </p>
-      </div>
-
-      <a
-        href="#presenters"
-        className="button button-primary"
-      >
-        View All Presenters
-      </a>
-    </div>
-
-    <div className="presenter-grid">
-
-      <article className="presenter-card">
-        <div className="presenter-image-placeholder">
-          <span>Presenter</span>
-        </div>
-
-        <div className="presenter-content">
-          <span className="presenter-category">
-            FEATURED PRESENTER
-          </span>
-
-          <h3>Presenter Name</h3>
-
-          <p className="presenter-role">
-            Academic / Researcher
-          </p>
-
-          <p className="presenter-topic">
-            Presentation topic will appear here.
-          </p>
-        </div>
-      </article>
-
-      <article className="presenter-card">
-        <div className="presenter-image-placeholder">
-          <span>Presenter</span>
-        </div>
-
-        <div className="presenter-content">
-          <span className="presenter-category">
-            FEATURED PRESENTER
-          </span>
-
-          <h3>Presenter Name</h3>
-
-          <p className="presenter-role">
-            Academic / Researcher
-          </p>
-
-          <p className="presenter-topic">
-            Presentation topic will appear here.
-          </p>
-        </div>
-      </article>
-
-      <article className="presenter-card">
-        <div className="presenter-image-placeholder">
-          <span>Presenter</span>
-        </div>
-
-        <div className="presenter-content">
-          <span className="presenter-category">
-            FEATURED PRESENTER
-          </span>
-
-          <h3>Presenter Name</h3>
-
-          <p className="presenter-role">
-            Academic / Researcher
-          </p>
-
-          <p className="presenter-topic">
-            Presentation topic will appear here.
-          </p>
-        </div>
-      </article>
-
-    </div>
-
-  </div>
-</section>
+   {/* Presenters */}
+<Presenters />
 
 <Schedule />
 

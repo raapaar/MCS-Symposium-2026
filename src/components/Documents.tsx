@@ -1,9 +1,70 @@
-import { documents } from "../data/documents";
+import { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+
+import { db } from "../services/firebase";
+
+interface DocumentRecord {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  category: string;
+  fileName: string;
+  url: string;
+  published: boolean;
+}
 
 function Documents() {
-  const publishedDocuments = documents.filter(
-    (document) => document.published,
-  );
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadDocuments() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const documentsQuery = query(
+          collection(db, "documents"),
+          where("published", "==", true),
+        );
+
+        const snapshot = await getDocs(documentsQuery);
+
+        const publishedDocuments: DocumentRecord[] = snapshot.docs
+          .map((document) => {
+            const data = document.data();
+
+            return {
+              id: document.id,
+              title: data.title ?? "",
+              description: data.description ?? "",
+              date: data.date ?? "",
+              category: data.category ?? "",
+              fileName: data.fileName ?? "",
+              url: data.url ?? "",
+              published: data.published === true,
+            };
+          })
+          .sort((a, b) => b.date.localeCompare(a.date));
+
+        setDocuments(publishedDocuments);
+      } catch (loadError) {
+        console.error(loadError);
+        setError("Unable to load documents at this time.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDocuments();
+  }, []);
 
   return (
     <section className="documents-section" id="documents">
@@ -19,41 +80,76 @@ function Documents() {
           </p>
         </div>
 
-        <div className="documents-list">
-          {publishedDocuments.map((document) => (
-            <article className="document-item" key={document.id}>
-              <div className="document-icon" aria-hidden="true">
-                PDF
-              </div>
+        {loading && (
+          <div className="schedule-message">
+            Loading documents...
+          </div>
+        )}
 
-              <div className="document-content">
-                <span className="document-category">
-                  {document.category}
-                </span>
+        {error && (
+          <div className="schedule-message schedule-message-error">
+            {error}
+          </div>
+        )}
 
-                <h3>{document.title}</h3>
+        {!loading && !error && documents.length === 0 && (
+          <div className="schedule-message">
+            No documents are currently available.
+          </div>
+        )}
 
-                <p>{document.description}</p>
+        {!loading && !error && documents.length > 0 && (
+          <div className="documents-list">
+            {documents.map((document) => (
+              <article className="document-item" key={document.id}>
+                <div className="document-icon" aria-hidden="true">
+                  PDF
+                </div>
 
-                <time dateTime={document.date}>
-                  {new Date(document.date).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </time>
-              </div>
+                <div className="document-content">
+                  <span className="document-category">
+                    {document.category}
+                  </span>
 
-              <button
-                type="button"
-                className="document-button"
-                aria-label={`Download ${document.title}`}
-              >
-                Download
-              </button>
-            </article>
-          ))}
-        </div>
+                  <h3>{document.title}</h3>
+
+                  <p>{document.description}</p>
+
+                  {document.date && (
+                    <time dateTime={document.date}>
+                      {new Date(document.date).toLocaleDateString("en-AU", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </time>
+                  )}
+                </div>
+
+                {document.url ? (
+                  <a
+                    href={document.url}
+                    className="document-button"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Open ${document.title}`}
+                  >
+                    Download
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className="document-button"
+                    disabled
+                    aria-label={`${document.title} is not available yet`}
+                  >
+                    Not Available
+                  </button>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

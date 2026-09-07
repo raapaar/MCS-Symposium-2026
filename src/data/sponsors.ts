@@ -12,6 +12,7 @@ export const sponsors: Sponsor[] = [
     logo: dwuLogo,
     website: "#",
     category: "Development Placeholder",
+    order: 1,
     published: true,
   },
   {
@@ -22,6 +23,7 @@ export const sponsors: Sponsor[] = [
     logo: mcsLogo,
     website: "#",
     category: "Development Placeholder",
+    order: 2,
     published: true,
   },
 ];

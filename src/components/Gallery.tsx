@@ -1,9 +1,68 @@
-import { galleryItems } from "../data/gallery";
+import { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+
+import { db } from "../services/firebase";
+
+interface GalleryRecord {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  category: string;
+  order: number;
+  published: boolean;
+}
 
 function Gallery() {
-  const publishedItems = galleryItems.filter(
-    (item) => item.published,
-  );
+  const [items, setItems] = useState<GalleryRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadGallery() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const galleryQuery = query(
+          collection(db, "gallery"),
+          where("published", "==", true),
+        );
+
+        const snapshot = await getDocs(galleryQuery);
+
+        const publishedItems: GalleryRecord[] = snapshot.docs
+          .map((item) => {
+            const data = item.data();
+
+            return {
+              id: item.id,
+              title: data.title ?? "",
+              description: data.description ?? "",
+              image: data.image ?? "",
+              category: data.category ?? "",
+              order: typeof data.order === "number" ? data.order : 0,
+              published: data.published === true,
+            };
+          })
+          .sort((a, b) => a.order - b.order);
+
+        setItems(publishedItems);
+      } catch (loadError) {
+        console.error(loadError);
+        setError("Unable to load gallery items at this time.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadGallery();
+  }, []);
 
   return (
     <section className="gallery-section" id="gallery">
@@ -19,29 +78,59 @@ function Gallery() {
           </p>
         </div>
 
-        <div className="gallery-grid">
-          {publishedItems.map((item) => (
-            <article className="gallery-card" key={item.id}>
-              <div className="gallery-image-wrapper">
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="gallery-image"
-                />
-              </div>
+        {loading && (
+          <div className="schedule-message">
+            Loading gallery...
+          </div>
+        )}
 
-              <div className="gallery-content">
-                <span className="gallery-category">
-                  {item.category}
-                </span>
+        {error && (
+          <div className="schedule-message schedule-message-error">
+            {error}
+          </div>
+        )}
 
-                <h3>{item.title}</h3>
+        {!loading && !error && items.length === 0 && (
+          <div className="schedule-message">
+            No gallery images are currently available.
+          </div>
+        )}
 
-                <p>{item.description}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        {!loading && !error && items.length > 0 && (
+          <div className="gallery-grid">
+            {items.map((item) => (
+              <article className="gallery-card" key={item.id}>
+                <div className="gallery-image">
+                  {item.image ? (
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="gallery-image-placeholder">
+                      Image not available
+                    </div>
+                  )}
+
+                  <div className="gallery-card-title">
+                    {item.title}
+                  </div>
+                </div>
+
+                <div className="gallery-content">
+                  <span className="gallery-category">
+                    {item.category}
+                  </span>
+
+                  <h3>{item.title}</h3>
+
+                  <p>{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
