@@ -3,12 +3,15 @@
   "name": "mcs-symposium-2026",
   "main": "./worker/index.ts",
   "compatibility_date": "2026-09-07",
-"assets": {
-  "directory": "./dist",
-  "binding": "ASSETS",
-  "not_found_handling": "single-page-application",
-  "run_worker_first": ["/api/*"]
-},
+  "vars": {
+    "FIREBASE_PROJECT_ID": "mcs-symposium-2026"
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
   "r2_buckets": [
     {
       "bucket_name": "mcs-symposium-2026-media",
