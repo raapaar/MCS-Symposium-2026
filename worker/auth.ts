@@ -27,8 +27,47 @@ export async function verifyFirebaseToken(
   });
 
   if (!payload.sub) {
-    throw new Error("Firebase token does not contain a user ID.");
+    throw new Error(
+      "Firebase token does not contain a user ID.",
+    );
   }
 
   return payload as FirebaseUser;
+}
+
+export async function verifyAdminRole(
+  token: string,
+  projectId: string,
+  uid: string,
+): Promise<boolean> {
+  const documentUrl =
+    `https://firestore.googleapis.com/v1/projects/` +
+    `${projectId}/databases/(default)/documents/users/` +
+    encodeURIComponent(uid);
+
+  const response = await fetch(documentUrl, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.error(
+      "Firestore admin-role check failed:",
+      response.status,
+    );
+
+    return false;
+  }
+
+  const document = await response.json() as {
+    fields?: {
+      role?: {
+        stringValue?: string;
+      };
+    };
+  };
+
+  return document.fields?.role?.stringValue === "admin";
 }

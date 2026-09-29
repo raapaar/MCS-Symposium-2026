@@ -1,4 +1,7 @@
-import { verifyFirebaseToken } from "./auth";
+import {
+  verifyAdminRole,
+  verifyFirebaseToken,
+} from "./auth";
 
 interface Env {
   mcs_symposium_2026_media: R2Bucket;
@@ -52,15 +55,46 @@ export default {
       }
 
       try {
-        const user = await verifyFirebaseToken(
-          token,
-          env.FIREBASE_PROJECT_ID,
-        );
+       const user = await verifyFirebaseToken(
+  token,
+  env.FIREBASE_PROJECT_ID,
+);
 
-        return Response.json({
-          authenticated: true,
-          uid: user.sub,
-        });
+const uid = user.sub;
+
+if (!uid) {
+  return Response.json(
+    {
+      authenticated: false,
+      authorized: false,
+      error: "Authenticated user ID is unavailable.",
+    },
+    { status: 401 },
+  );
+}
+
+const isAdmin = await verifyAdminRole(
+  token,
+  env.FIREBASE_PROJECT_ID,
+  uid,
+);
+
+if (!isAdmin) {
+  return Response.json(
+    {
+      authenticated: true,
+      authorized: false,
+      error: "Administrator access is required.",
+    },
+    { status: 403 },
+  );
+}
+
+return Response.json({
+  authenticated: true,
+  authorized: true,
+  uid,
+});
       } catch (error) {
         console.error("Firebase token verification failed:", error);
 
