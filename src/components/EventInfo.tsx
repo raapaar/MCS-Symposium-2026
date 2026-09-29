@@ -10,8 +10,11 @@ import { db } from "../services/firebase";
 import type { EventInfo as EventInfoType } from "../types/event";
 
 function EventInfo() {
-  const [event, setEvent] = useState<EventInfoType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [event, setEvent] =
+    useState<EventInfoType | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
 
   useEffect(() => {
     async function loadEvent() {
@@ -21,7 +24,8 @@ function EventInfo() {
           where("published", "==", true),
         );
 
-        const snapshot = await getDocs(eventQuery);
+        const snapshot =
+          await getDocs(eventQuery);
 
         if (snapshot.empty) {
           setEvent(null);
@@ -33,26 +37,90 @@ function EventInfo() {
 
         setEvent({
           id: document.id,
+
           title: data.title ?? "",
           department: data.department ?? "",
           university: data.university ?? "",
-          year: data.year ?? new Date().getFullYear(),
-          description: data.description ?? "",
-          venue: data.venue ?? "",
-          location: data.location ?? "",
-          contactEmail: data.contactEmail ?? "",
-          contactPhone: data.contactPhone ?? "",
-          published: data.published ?? false,
+
+          year:
+            typeof data.year === "number"
+              ? data.year
+              : new Date().getFullYear(),
+
+          description:
+            data.description ?? "",
+
+          venue:
+            data.venue ?? "",
+
+          location:
+            data.location ?? "",
+
+          aboutTitle:
+            data.aboutTitle ??
+            "About the Symposium",
+
+          aboutContent:
+            data.aboutContent ??
+            data.description ??
+            "",
+
+          eventDate:
+            data.eventDate ?? "",
+
+          eventStartTime:
+            data.eventStartTime ?? "",
+
+          contactEmail:
+            data.contactEmail ?? "",
+
+          contactPhone:
+            data.contactPhone ?? "",
+
+          whatsappNumber:
+            data.whatsappNumber ?? "",
+
+          hodName:
+            data.hodName ?? "",
+
+          hodTitle:
+            data.hodTitle ??
+            "Head of Department",
+
+          hodMessage:
+            data.hodMessage ?? "",
+
+          hodImageUrl:
+            data.hodImageUrl ?? "",
+
+          hodImagePath:
+            data.hodImagePath ?? "",
+
+          heroTagline:
+            data.heroTagline ?? "",
+
+          heroImageUrl:
+            data.heroImageUrl ?? "",
+
+          heroImagePath:
+            data.heroImagePath ?? "",
+
+          published:
+            data.published === true,
         });
       } catch (error) {
-        console.error("Error loading event information:", error);
+        console.error(
+          "Error loading event information:",
+          error,
+        );
+
         setEvent(null);
       } finally {
         setLoading(false);
       }
     }
 
-    loadEvent();
+    void loadEvent();
   }, []);
 
   if (loading || !event) {
@@ -63,22 +131,38 @@ function EventInfo() {
     <section className="event-information">
       <div className="content-container event-grid">
         <div className="event-item">
-          <span className="event-label">EVENT</span>
+          <span className="event-label">
+            EVENT
+          </span>
+
           <strong>{event.title}</strong>
         </div>
 
         <div className="event-item">
-          <span className="event-label">DEPARTMENT</span>
-          <strong>{event.department}</strong>
+          <span className="event-label">
+            DEPARTMENT
+          </span>
+
+          <strong>
+            {event.department}
+          </strong>
         </div>
 
         <div className="event-item">
-          <span className="event-label">UNIVERSITY</span>
-          <strong>{event.university}</strong>
+          <span className="event-label">
+            UNIVERSITY
+          </span>
+
+          <strong>
+            {event.university}
+          </strong>
         </div>
 
         <div className="event-item">
-          <span className="event-label">YEAR</span>
+          <span className="event-label">
+            YEAR
+          </span>
+
           <strong>{event.year}</strong>
         </div>
       </div>

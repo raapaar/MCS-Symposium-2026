@@ -14,7 +14,10 @@ const ALLOWED_FOLDERS = new Set([
   "gallery",
   "sponsors",
   "documents",
+  "staff",
+  "branding",
 ]);
+
 
 const IMAGE_TYPES = new Set([
   "image/jpeg",
