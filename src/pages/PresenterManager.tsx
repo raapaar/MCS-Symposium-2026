@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../services/firebase";
+import storageProvider from "../services/storageProvider";
 
 interface PresenterForm {
   name: string;
@@ -19,6 +20,7 @@ interface PresenterForm {
   topic: string;
   biography: string;
   imageUrl: string;
+  imagePath: string;
   linkedinUrl: string;
   order: number;
   published: boolean;
@@ -35,15 +37,26 @@ const emptyForm: PresenterForm = {
   topic: "",
   biography: "",
   imageUrl: "",
+  imagePath: "",
   linkedinUrl: "",
   order: 1,
   published: false,
 };
 
 function PresenterManager() {
-  const [presenters, setPresenters] = useState<PresenterRecord[]>([]);
-  const [form, setForm] = useState<PresenterForm>(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [presenters, setPresenters] = useState<
+    PresenterRecord[]
+  >([]);
+
+  const [form, setForm] =
+    useState<PresenterForm>(emptyForm);
+
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -59,7 +72,8 @@ function PresenterManager() {
         orderBy("order", "asc"),
       );
 
-      const snapshot = await getDocs(presentersQuery);
+      const snapshot =
+        await getDocs(presentersQuery);
 
       const loadedPresenters: PresenterRecord[] =
         snapshot.docs.map((presenterDoc) => {
@@ -73,6 +87,7 @@ function PresenterManager() {
             topic: data.topic ?? "",
             biography: data.biography ?? "",
             imageUrl: data.imageUrl ?? "",
+            imagePath: data.imagePath ?? "",
             linkedinUrl: data.linkedinUrl ?? "",
             order: Number(data.order ?? 0),
             published: data.published === true,
@@ -107,7 +122,54 @@ function PresenterManager() {
       order: presenters.length + 1,
     });
 
+    setSelectedImage(null);
     setEditingId(null);
+  };
+
+  const handleImageChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setError("");
+
+    const file =
+      event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setSelectedImage(null);
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setSelectedImage(null);
+      event.target.value = "";
+
+      setError(
+        "Presenter image must be JPEG, PNG, or WebP.",
+      );
+
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setSelectedImage(null);
+      event.target.value = "";
+
+      setError(
+        "Presenter image must not exceed 5 MB.",
+      );
+
+      return;
+    }
+
+    setSelectedImage(file);
   };
 
   const handleSubmit = async (
@@ -147,19 +209,44 @@ function PresenterManager() {
       setError(
         "LinkedIn URL must be a valid https://linkedin.com/ address.",
       );
+
       return;
     }
 
     setSaving(true);
 
+    let newImagePath = "";
+    let oldImagePathToDelete = "";
+
     try {
+      let imageUrl = form.imageUrl;
+      let imagePath = form.imagePath;
+
+      if (selectedImage) {
+        const uploadResult =
+          await storageProvider.uploadFile(
+            selectedImage,
+            "presenters",
+          );
+
+        newImagePath = uploadResult.path;
+
+        if (editingId && form.imagePath) {
+          oldImagePathToDelete = form.imagePath;
+        }
+
+        imageUrl = uploadResult.url;
+        imagePath = uploadResult.path;
+      }
+
       const presenterData = {
         name: form.name.trim(),
         role: form.role.trim(),
         category: form.category.trim(),
         topic: form.topic.trim(),
         biography: form.biography.trim(),
-        imageUrl: form.imageUrl.trim(),
+        imageUrl,
+        imagePath,
         linkedinUrl: form.linkedinUrl.trim(),
         order: Number(form.order),
         published: form.published,
@@ -171,26 +258,70 @@ function PresenterManager() {
           presenterData,
         );
 
-        setMessage("Presenter updated successfully.");
+        setMessage(
+          "Presenter updated successfully.",
+        );
       } else {
         await addDoc(
           collection(db, "presenters"),
           presenterData,
         );
 
-        setMessage("Presenter added successfully.");
+        setMessage(
+          "Presenter added successfully.",
+        );
+      }
+
+      if (
+        oldImagePathToDelete &&
+        oldImagePathToDelete !== imagePath
+      ) {
+        try {
+          await storageProvider.deleteFile(
+            oldImagePathToDelete,
+          );
+        } catch (deleteError) {
+          console.error(
+            "Old presenter image could not be deleted:",
+            deleteError,
+          );
+        }
       }
 
       resetForm();
       await loadPresenters();
-    } catch {
-      setError("Unable to save presenter.");
+    } catch (saveError) {
+      console.error(
+        "Unable to save presenter:",
+        saveError,
+      );
+
+      if (newImagePath) {
+        try {
+          await storageProvider.deleteFile(
+            newImagePath,
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Uploaded image cleanup failed:",
+            cleanupError,
+          );
+        }
+      }
+
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save presenter.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEdit = (presenter: PresenterRecord) => {
+  const handleEdit = (
+    presenter: PresenterRecord,
+  ) => {
     setEditingId(presenter.id);
 
     setForm({
@@ -200,16 +331,20 @@ function PresenterManager() {
       topic: presenter.topic,
       biography: presenter.biography,
       imageUrl: presenter.imageUrl,
+      imagePath: presenter.imagePath,
       linkedinUrl: presenter.linkedinUrl,
       order: presenter.order,
       published: presenter.published,
     });
 
+    setSelectedImage(null);
     setMessage("");
     setError("");
   };
 
-  const handleDelete = async (presenterId: string) => {
+  const handleDelete = async (
+    presenter: PresenterRecord,
+  ) => {
     const confirmed = window.confirm(
       "Delete this presenter?",
     );
@@ -222,7 +357,22 @@ function PresenterManager() {
     setMessage("");
 
     try {
-      await deleteDoc(doc(db, "presenters", presenterId));
+      await deleteDoc(
+        doc(db, "presenters", presenter.id),
+      );
+
+      if (presenter.imagePath) {
+        try {
+          await storageProvider.deleteFile(
+            presenter.imagePath,
+          );
+        } catch (deleteError) {
+          console.error(
+            "Presenter image could not be deleted:",
+            deleteError,
+          );
+        }
+      }
 
       setMessage("Presenter deleted.");
       await loadPresenters();
@@ -263,7 +413,10 @@ function PresenterManager() {
     <div className="admin-dashboard">
       <header className="admin-dashboard-header">
         <div>
-          <p className="section-eyebrow">MCS Symposium 2026</p>
+          <p className="section-eyebrow">
+            MCS Symposium 2026
+          </p>
+
           <h1>Presenter Manager</h1>
         </div>
 
@@ -271,7 +424,8 @@ function PresenterManager() {
           type="button"
           className="admin-logout-button"
           onClick={() => {
-            window.location.href = "/admin/dashboard";
+            window.location.href =
+              "/admin/dashboard";
           }}
         >
           ← Dashboard
@@ -291,9 +445,9 @@ function PresenterManager() {
           </h2>
 
           <p>
-            Add and manage presenter information. Keep records
-            as drafts until official presenter details are
-            confirmed.
+            Add and manage presenter information.
+            Keep records as drafts until official
+            presenter details are confirmed.
           </p>
         </section>
 
@@ -421,23 +575,49 @@ function PresenterManager() {
                 />
               </div>
 
-              <div className="admin-form-group">
+              <div className="admin-form-group admin-form-full">
                 <label htmlFor="presenter-image">
-                  Image URL
+                  Presenter Image
                 </label>
 
                 <input
                   id="presenter-image"
-                  type="url"
-                  placeholder="https://..."
-                  value={form.imageUrl}
-                  onChange={(event) =>
-                    handleInputChange(
-                      "imageUrl",
-                      event.target.value,
-                    )
-                  }
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageChange}
                 />
+
+                <small>
+                  JPEG, PNG, or WebP. Maximum
+                  file size: 5 MB.
+                </small>
+
+                {selectedImage && (
+                  <p>
+                    Selected:{" "}
+                    <strong>
+                      {selectedImage.name}
+                    </strong>
+                  </p>
+                )}
+
+                {!selectedImage &&
+                  form.imageUrl && (
+                    <div>
+                      <p>Current image:</p>
+
+                      <img
+                        src={form.imageUrl}
+                        alt="Current presenter"
+                        style={{
+                          width: "120px",
+                          height: "120px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </div>
+                  )}
               </div>
 
               <div className="admin-form-group">
@@ -496,7 +676,9 @@ function PresenterManager() {
                 disabled={saving}
               >
                 {saving
-                  ? "Saving..."
+                  ? selectedImage
+                    ? "Uploading & Saving..."
+                    : "Saving..."
                   : editingId
                     ? "Update Presenter"
                     : "Add Presenter"}
@@ -507,6 +689,7 @@ function PresenterManager() {
                   type="button"
                   className="admin-secondary-button"
                   onClick={resetForm}
+                  disabled={saving}
                 >
                   Cancel Edit
                 </button>
@@ -533,6 +716,7 @@ function PresenterManager() {
                 setMessage("");
                 setError("");
               }}
+              disabled={saving}
             >
               + Add New Presenter
             </button>
@@ -574,15 +758,25 @@ function PresenterManager() {
                       </span>
                     </div>
 
+                    {presenter.imageUrl && (
+                      <img
+                        src={presenter.imageUrl}
+                        alt={presenter.name}
+                        style={{
+                          width: "90px",
+                          height: "90px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          marginBottom: "12px",
+                        }}
+                      />
+                    )}
+
                     <h3>{presenter.name}</h3>
 
-                    <p>
-                      {presenter.role}
-                    </p>
+                    <p>{presenter.role}</p>
 
-                    <p>
-                      {presenter.topic}
-                    </p>
+                    <p>{presenter.topic}</p>
 
                     {presenter.linkedinUrl && (
                       <small>
@@ -597,6 +791,7 @@ function PresenterManager() {
                         onClick={() =>
                           handleEdit(presenter)
                         }
+                        disabled={saving}
                       >
                         Edit
                       </button>
@@ -609,6 +804,7 @@ function PresenterManager() {
                             presenter,
                           )
                         }
+                        disabled={saving}
                       >
                         {presenter.published
                           ? "Unpublish"
@@ -619,8 +815,9 @@ function PresenterManager() {
                         type="button"
                         className="admin-danger-button"
                         onClick={() =>
-                          handleDelete(presenter.id)
+                          handleDelete(presenter)
                         }
+                        disabled={saving}
                       >
                         Delete
                       </button>
