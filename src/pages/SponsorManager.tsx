@@ -11,22 +11,36 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../services/firebase";
+import storageProvider from "../services/storageProvider";
 
 interface SponsorRecord {
   id: string;
   name: string;
   description: string;
   logo: string;
+  logoPath: string;
   website: string;
   category: string;
   order: number;
   published: boolean;
 }
 
-const emptyForm = {
+interface SponsorForm {
+  name: string;
+  description: string;
+  logo: string;
+  logoPath: string;
+  website: string;
+  category: string;
+  order: number;
+  published: boolean;
+}
+
+const emptyForm: SponsorForm = {
   name: "",
   description: "",
   logo: "",
+  logoPath: "",
   website: "",
   category: "",
   order: 1,
@@ -34,9 +48,18 @@ const emptyForm = {
 };
 
 function SponsorManager() {
-  const [sponsors, setSponsors] = useState<SponsorRecord[]>([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [sponsors, setSponsors] =
+    useState<SponsorRecord[]>([]);
+
+  const [form, setForm] =
+    useState<SponsorForm>(emptyForm);
+
+  const [selectedLogo, setSelectedLogo] =
+    useState<File | null>(null);
+
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -52,45 +75,60 @@ function SponsorManager() {
         orderBy("order", "asc"),
       );
 
-      const snapshot = await getDocs(sponsorsQuery);
+      const snapshot =
+        await getDocs(sponsorsQuery);
 
-      const records: SponsorRecord[] = snapshot.docs.map((sponsor) => {
-        const data = sponsor.data();
+      const records: SponsorRecord[] =
+        snapshot.docs.map((sponsor) => {
+          const data = sponsor.data();
 
-        return {
-          id: sponsor.id,
-          name: data.name ?? "",
-          description: data.description ?? "",
-          logo: data.logo ?? "",
-          website: data.website ?? "",
-          category: data.category ?? "",
-          order: typeof data.order === "number" ? data.order : 0,
-          published: data.published === true,
-        };
-      });
+          return {
+            id: sponsor.id,
+            name: data.name ?? "",
+            description:
+              data.description ?? "",
+            logo: data.logo ?? "",
+            logoPath: data.logoPath ?? "",
+            website: data.website ?? "",
+            category: data.category ?? "",
+            order:
+              typeof data.order === "number"
+                ? data.order
+                : 0,
+            published: data.published === true,
+          };
+        });
 
       setSponsors(records);
     } catch (loadError) {
       console.error(loadError);
-      setError("Unable to load sponsors and partners.");
+
+      setError(
+        "Unable to load sponsors and partners.",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadSponsors();
+    void loadSponsors();
   }, []);
 
   function handleChange(
     event: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement
     >,
   ) {
-    const { name, value, type } = event.target;
+    const { name, value, type } =
+      event.target;
 
     if (type === "checkbox") {
-      const checked = (event.target as HTMLInputElement).checked;
+      const checked = (
+        event.target as HTMLInputElement
+      ).checked;
 
       setForm((current) => ({
         ...current,
@@ -102,28 +140,86 @@ function SponsorManager() {
 
     setForm((current) => ({
       ...current,
-      [name]: name === "order" ? Number(value) : value,
+      [name]:
+        name === "order"
+          ? Number(value)
+          : value,
     }));
   }
 
+  function handleLogoChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    setError("");
+
+    const file =
+      event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setSelectedLogo(null);
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setSelectedLogo(null);
+      event.target.value = "";
+
+      setError(
+        "Sponsor logo must be JPEG, PNG, or WebP.",
+      );
+
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setSelectedLogo(null);
+      event.target.value = "";
+
+      setError(
+        "Sponsor logo must not exceed 5 MB.",
+      );
+
+      return;
+    }
+
+    setSelectedLogo(file);
+  }
+
   function resetForm() {
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      order: sponsors.length + 1,
+    });
+
+    setSelectedLogo(null);
     setEditingId(null);
   }
 
-  function startEdit(sponsor: SponsorRecord) {
+  function startEdit(
+    sponsor: SponsorRecord,
+  ) {
     setEditingId(sponsor.id);
 
     setForm({
       name: sponsor.name,
       description: sponsor.description,
       logo: sponsor.logo,
+      logoPath: sponsor.logoPath,
       website: sponsor.website,
       category: sponsor.category,
       order: sponsor.order,
       published: sponsor.published,
     });
 
+    setSelectedLogo(null);
     setMessage("");
     setError("");
 
@@ -133,14 +229,18 @@ function SponsorManager() {
     });
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     setMessage("");
     setError("");
 
     if (!form.name.trim()) {
-      setError("Sponsor or partner name is required.");
+      setError(
+        "Sponsor or partner name is required.",
+      );
       return;
     }
 
@@ -154,15 +254,21 @@ function SponsorManager() {
       return;
     }
 
-    if (!form.logo.trim()) {
-      setError("Logo URL is required.");
+    if (!editingId && !selectedLogo) {
+      setError(
+        "Please select a sponsor logo.",
+      );
       return;
     }
 
-    try {
-      new URL(form.logo.trim());
-    } catch {
-      setError("Please enter a valid logo URL.");
+    if (
+      editingId &&
+      !selectedLogo &&
+      !form.logo
+    ) {
+      setError(
+        "Please select a sponsor logo.",
+      );
       return;
     }
 
@@ -170,55 +276,142 @@ function SponsorManager() {
       try {
         new URL(form.website.trim());
       } catch {
-        setError("Please enter a valid website URL.");
+        setError(
+          "Please enter a valid website URL.",
+        );
         return;
       }
     }
 
-    if (!Number.isFinite(form.order) || form.order < 1) {
-      setError("Display order must be a number greater than 0.");
+    if (
+      !Number.isFinite(form.order) ||
+      form.order < 1
+    ) {
+      setError(
+        "Display order must be a number greater than 0.",
+      );
       return;
     }
 
-    const sponsorData = {
-      name: form.name.trim(),
-      description: form.description.trim(),
-      logo: form.logo.trim(),
-      website: form.website.trim(),
-      category: form.category.trim(),
-      order: form.order,
-      published: form.published,
-    };
+    setSaving(true);
+
+    let newLogoPath = "";
+    let oldLogoPathToDelete = "";
 
     try {
-      setSaving(true);
+      let logo = form.logo;
+      let logoPath = form.logoPath;
+
+      if (selectedLogo) {
+        const uploadResult =
+          await storageProvider.uploadFile(
+            selectedLogo,
+            "sponsors",
+          );
+
+        newLogoPath = uploadResult.path;
+
+        if (
+          editingId &&
+          form.logoPath
+        ) {
+          oldLogoPathToDelete =
+            form.logoPath;
+        }
+
+        logo = uploadResult.url;
+        logoPath = uploadResult.path;
+      }
+
+      const sponsorData = {
+        name: form.name.trim(),
+        description:
+          form.description.trim(),
+        logo,
+        logoPath,
+        website: form.website.trim(),
+        category: form.category.trim(),
+        order: form.order,
+        published: form.published,
+      };
 
       if (editingId) {
-        await updateDoc(doc(db, "sponsors", editingId), sponsorData);
-        setMessage("Sponsor or partner updated successfully.");
+        await updateDoc(
+          doc(db, "sponsors", editingId),
+          sponsorData,
+        );
+
+        setMessage(
+          "Sponsor or partner updated successfully.",
+        );
       } else {
-        await addDoc(collection(db, "sponsors"), sponsorData);
-        setMessage("Sponsor or partner added successfully.");
+        await addDoc(
+          collection(db, "sponsors"),
+          sponsorData,
+        );
+
+        setMessage(
+          "Sponsor or partner added successfully.",
+        );
+      }
+
+      if (
+        oldLogoPathToDelete &&
+        oldLogoPathToDelete !== logoPath
+      ) {
+        try {
+          await storageProvider.deleteFile(
+            oldLogoPathToDelete,
+          );
+        } catch (deleteError) {
+          console.error(
+            "Old sponsor logo could not be deleted:",
+            deleteError,
+          );
+        }
       }
 
       resetForm();
       await loadSponsors();
     } catch (saveError) {
       console.error(saveError);
-      setError("Unable to save the sponsor or partner.");
+
+      if (newLogoPath) {
+        try {
+          await storageProvider.deleteFile(
+            newLogoPath,
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Uploaded sponsor logo cleanup failed:",
+            cleanupError,
+          );
+        }
+      }
+
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save the sponsor or partner.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  async function togglePublished(sponsor: SponsorRecord) {
+  async function togglePublished(
+    sponsor: SponsorRecord,
+  ) {
     setMessage("");
     setError("");
 
     try {
-      await updateDoc(doc(db, "sponsors", sponsor.id), {
-        published: !sponsor.published,
-      });
+      await updateDoc(
+        doc(db, "sponsors", sponsor.id),
+        {
+          published: !sponsor.published,
+        },
+      );
 
       setMessage(
         sponsor.published
@@ -229,11 +422,16 @@ function SponsorManager() {
       await loadSponsors();
     } catch (toggleError) {
       console.error(toggleError);
-      setError("Unable to change the publication status.");
+
+      setError(
+        "Unable to change the publication status.",
+      );
     }
   }
 
-  async function handleDelete(sponsor: SponsorRecord) {
+  async function handleDelete(
+    sponsor: SponsorRecord,
+  ) {
     const confirmed = window.confirm(
       `Delete "${sponsor.name}"? This cannot be undone.`,
     );
@@ -246,17 +444,38 @@ function SponsorManager() {
     setError("");
 
     try {
-      await deleteDoc(doc(db, "sponsors", sponsor.id));
+      await deleteDoc(
+        doc(db, "sponsors", sponsor.id),
+      );
+
+      if (sponsor.logoPath) {
+        try {
+          await storageProvider.deleteFile(
+            sponsor.logoPath,
+          );
+        } catch (deleteError) {
+          console.error(
+            "Sponsor logo could not be deleted:",
+            deleteError,
+          );
+        }
+      }
 
       if (editingId === sponsor.id) {
         resetForm();
       }
 
-      setMessage("Sponsor or partner deleted successfully.");
+      setMessage(
+        "Sponsor or partner deleted successfully.",
+      );
+
       await loadSponsors();
     } catch (deleteError) {
       console.error(deleteError);
-      setError("Unable to delete the sponsor or partner.");
+
+      setError(
+        "Unable to delete the sponsor or partner.",
+      );
     }
   }
 
@@ -265,12 +484,15 @@ function SponsorManager() {
       <div className="admin-container">
         <div className="admin-header">
           <div>
-            <span className="section-eyebrow">Administration</span>
+            <span className="section-eyebrow">
+              Administration
+            </span>
 
-            <h1>Sponsors & Partners</h1>
+            <h1>Sponsors &amp; Partners</h1>
 
             <p>
-              Add, edit, publish, unpublish, reorder, and delete sponsors and
+              Add, edit, publish, unpublish,
+              reorder, and delete sponsors and
               event partners.
             </p>
           </div>
@@ -280,7 +502,8 @@ function SponsorManager() {
               type="button"
               className="admin-secondary-button"
               onClick={() => {
-                window.location.href = "/admin/dashboard";
+                window.location.href =
+                  "/admin/dashboard";
               }}
             >
               Dashboard
@@ -298,7 +521,11 @@ function SponsorManager() {
           </div>
         </div>
 
-        {message && <div className="admin-message">{message}</div>}
+        {message && (
+          <div className="admin-message">
+            {message}
+          </div>
+        )}
 
         {error && (
           <div className="admin-message admin-message-error">
@@ -310,7 +537,9 @@ function SponsorManager() {
           <div className="admin-card-heading">
             <div>
               <span className="section-eyebrow">
-                {editingId ? "Edit Sponsor" : "Add Sponsor"}
+                {editingId
+                  ? "Edit Sponsor"
+                  : "Add Sponsor"}
               </span>
 
               <h2>
@@ -325,13 +554,17 @@ function SponsorManager() {
                 type="button"
                 className="admin-secondary-button"
                 onClick={resetForm}
+                disabled={saving}
               >
                 Cancel Edit
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="admin-form">
+          <form
+            onSubmit={handleSubmit}
+            className="admin-form"
+          >
             <div className="admin-form-grid">
               <label>
                 <span>Name</span>
@@ -371,19 +604,48 @@ function SponsorManager() {
               </label>
 
               <label>
-                <span>Logo URL</span>
+                <span>Sponsor Logo</span>
 
                 <input
-                  type="url"
-                  name="logo"
-                  value={form.logo}
-                  onChange={handleChange}
-                  placeholder="https://example.com/logo.png"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleLogoChange}
                 />
 
                 <small>
-                  Use a direct, publicly accessible logo image URL.
+                  JPEG, PNG, or WebP.
+                  Maximum file size: 5 MB.
                 </small>
+
+                {selectedLogo && (
+                  <p>
+                    Selected:{" "}
+                    <strong>
+                      {selectedLogo.name}
+                    </strong>
+                  </p>
+                )}
+
+                {!selectedLogo &&
+                  form.logo && (
+                    <div>
+                      <p>Current logo:</p>
+
+                      <img
+                        src={form.logo}
+                        alt={
+                          form.name ||
+                          "Sponsor logo"
+                        }
+                        style={{
+                          width: "150px",
+                          height: "100px",
+                          objectFit: "contain",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </div>
+                  )}
               </label>
 
               <label className="admin-form-full">
@@ -429,7 +691,9 @@ function SponsorManager() {
                 disabled={saving}
               >
                 {saving
-                  ? "Saving..."
+                  ? selectedLogo
+                    ? "Uploading & Saving..."
+                    : "Saving..."
                   : editingId
                     ? "Update Sponsor"
                     : "Add Sponsor"}
@@ -452,45 +716,79 @@ function SponsorManager() {
         <section className="admin-list-section">
           <div className="admin-card-heading">
             <div>
-              <span className="section-eyebrow">Existing Sponsors</span>
+              <span className="section-eyebrow">
+                Existing Sponsors
+              </span>
 
-              <h2>Sponsor & Partner Library</h2>
+              <h2>
+                Sponsor &amp; Partner Library
+              </h2>
             </div>
           </div>
 
           {loading ? (
-            <div className="admin-message">Loading sponsors...</div>
+            <div className="admin-message">
+              Loading sponsors...
+            </div>
           ) : sponsors.length === 0 ? (
             <div className="admin-message">
-              No sponsors or partners have been added yet.
+              No sponsors or partners have been
+              added yet.
             </div>
           ) : (
             <div className="admin-list">
               {sponsors.map((sponsor) => (
-                <article className="admin-list-item" key={sponsor.id}>
+                <article
+                  className="admin-list-item"
+                  key={sponsor.id}
+                >
                   <div className="admin-list-content">
                     <div className="admin-list-meta">
-                      <span>{sponsor.category}</span>
-
                       <span>
-                        {sponsor.published ? "Published" : "Draft"}
+                        {sponsor.category}
                       </span>
 
-                      <span>Order {sponsor.order}</span>
+                      <span>
+                        {sponsor.published
+                          ? "Published"
+                          : "Draft"}
+                      </span>
+
+                      <span>
+                        Order {sponsor.order}
+                      </span>
                     </div>
+
+                    {sponsor.logo && (
+                      <img
+                        src={sponsor.logo}
+                        alt={sponsor.name}
+                        style={{
+                          width: "150px",
+                          height: "100px",
+                          objectFit: "contain",
+                          borderRadius: "8px",
+                          marginBottom: "12px",
+                        }}
+                      />
+                    )}
 
                     <h3>{sponsor.name}</h3>
 
-                    <p>{sponsor.description}</p>
+                    <p>
+                      {sponsor.description}
+                    </p>
 
                     <div className="admin-list-details">
-                      <a
-                        href={sponsor.logo}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View Logo
-                      </a>
+                      {sponsor.logo && (
+                        <a
+                          href={sponsor.logo}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View Logo
+                        </a>
+                      )}
 
                       {sponsor.website && (
                         <a
@@ -508,7 +806,10 @@ function SponsorManager() {
                     <button
                       type="button"
                       className="admin-secondary-button"
-                      onClick={() => startEdit(sponsor)}
+                      onClick={() =>
+                        startEdit(sponsor)
+                      }
+                      disabled={saving}
                     >
                       Edit
                     </button>
@@ -516,15 +817,23 @@ function SponsorManager() {
                     <button
                       type="button"
                       className="admin-secondary-button"
-                      onClick={() => togglePublished(sponsor)}
+                      onClick={() =>
+                        togglePublished(sponsor)
+                      }
+                      disabled={saving}
                     >
-                      {sponsor.published ? "Unpublish" : "Publish"}
+                      {sponsor.published
+                        ? "Unpublish"
+                        : "Publish"}
                     </button>
 
                     <button
                       type="button"
                       className="admin-danger-button"
-                      onClick={() => handleDelete(sponsor)}
+                      onClick={() =>
+                        handleDelete(sponsor)
+                      }
+                      disabled={saving}
                     >
                       Delete
                     </button>
