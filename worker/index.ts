@@ -425,26 +425,36 @@ export default {
   ): Promise<Response> {
     const url = new URL(request.url);
 
+    /*
+     * Public API health check.
+     *
+     * This intentionally does not perform an R2
+     * list/head/get operation. It only confirms
+     * that the Worker storage API is responding.
+     */
     if (
       url.pathname ===
         "/api/storage/health" &&
       request.method === "GET"
     ) {
-      const objects =
-        await env.mcs_symposium_2026_media.list({
-          limit: 1,
-        });
-
-      return Response.json({
-        ok: true,
-        service:
-          "MCS Symposium R2 Storage",
-        bucketConnected: true,
-        objectCountChecked:
-          objects.objects.length,
-      });
+      return Response.json(
+        {
+          ok: true,
+          service:
+            "MCS Symposium Storage API",
+          status: "healthy",
+        },
+        {
+          headers: {
+            "Cache-Control": "no-store",
+          },
+        },
+      );
     }
 
+    /*
+     * Protected administrator authorization check.
+     */
     if (
       url.pathname ===
         "/api/storage/auth-check" &&
@@ -465,6 +475,9 @@ export default {
       });
     }
 
+    /*
+     * Protected R2 upload endpoint.
+     */
     if (
       url.pathname ===
         "/api/storage/upload" &&
@@ -479,6 +492,9 @@ export default {
     const objectKey =
       extractObjectKey(url.pathname);
 
+    /*
+     * Public file retrieval.
+     */
     if (
       objectKey &&
       request.method === "GET"
@@ -489,6 +505,9 @@ export default {
       );
     }
 
+    /*
+     * Protected R2 delete endpoint.
+     */
     if (
       objectKey &&
       request.method === "DELETE"
@@ -500,6 +519,9 @@ export default {
       );
     }
 
+    /*
+     * Reject unknown storage API routes.
+     */
     if (
       url.pathname.startsWith(
         "/api/storage/",
@@ -514,6 +536,10 @@ export default {
       );
     }
 
+    /*
+     * All non-API requests are handled by
+     * the Vite static assets / SPA.
+     */
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;
