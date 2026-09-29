@@ -1,8 +1,23 @@
-import { useEffect, useState } from "react";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { auth, db } from "../services/firebase";
+import {
+  onAuthStateChanged,
+  signOut,
+  type User,
+} from "firebase/auth";
+
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
+
+import {
+  auth,
+  db,
+} from "../services/firebase";
 
 interface ManagementCardProps {
   title: string;
@@ -17,7 +32,8 @@ function ManagementCard({
 }: ManagementCardProps) {
   const handleClick = () => {
     if (path) {
-      window.location.href = path;
+      window.location.href =
+        path;
     }
   };
 
@@ -29,68 +45,120 @@ function ManagementCard({
       disabled={!path}
     >
       <span>{title}</span>
-      <small>{description}</small>
+
+      <small>
+        {description}
+      </small>
     </button>
   );
 }
 
 function AdminDashboard() {
-  const [user, setUser] = useState<User | null>(null);
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
+  const [user, setUser] =
+    useState<User | null>(
+      null,
+    );
+
+  const [
+    checkingAccess,
+    setCheckingAccess,
+  ] = useState(true);
+
+  const [
+    authorized,
+    setAuthorized,
+  ] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      async (currentUser) => {
-        if (!currentUser) {
-          window.location.href = "/admin";
-          return;
-        }
+    const unsubscribe =
+      onAuthStateChanged(
+        auth,
 
-        try {
-          const userSnapshot = await getDoc(
-            doc(db, "users", currentUser.uid),
-          );
+        async (
+          currentUser,
+        ) => {
+          if (!currentUser) {
+            window.location.href =
+              "/admin";
 
-          const isAdmin =
-            userSnapshot.exists() &&
-            userSnapshot.data().role === "admin";
-
-          if (!isAdmin) {
-            await signOut(auth);
-            window.location.href = "/admin";
             return;
           }
 
-          setUser(currentUser);
-          setAuthorized(true);
-        } catch {
-          await signOut(auth);
-          window.location.href = "/admin";
-        } finally {
-          setCheckingAccess(false);
-        }
-      },
-    );
+          try {
+            const userSnapshot =
+              await getDoc(
+                doc(
+                  db,
+                  "users",
+                  currentUser.uid,
+                ),
+              );
+
+            const isAdmin =
+              userSnapshot.exists() &&
+              userSnapshot.data()
+                .role ===
+                "admin";
+
+            if (!isAdmin) {
+              await signOut(
+                auth,
+              );
+
+              window.location.href =
+                "/admin";
+
+              return;
+            }
+
+            setUser(
+              currentUser,
+            );
+
+            setAuthorized(
+              true,
+            );
+          } catch {
+            await signOut(
+              auth,
+            );
+
+            window.location.href =
+              "/admin";
+          } finally {
+            setCheckingAccess(
+              false,
+            );
+          }
+        },
+      );
 
     return unsubscribe;
   }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    window.location.href = "/admin";
-  };
+  const handleLogout =
+    async () => {
+      await signOut(auth);
+
+      window.location.href =
+        "/admin";
+    };
 
   if (checkingAccess) {
     return (
       <main className="admin-loading">
-        <p>Checking administrator access...</p>
+        <p>
+          Checking administrator
+          access...
+        </p>
       </main>
     );
   }
 
-  if (!authorized || !user) {
+  if (
+    !authorized ||
+    !user
+  ) {
     return null;
   }
 
@@ -102,16 +170,22 @@ function AdminDashboard() {
             MCS Symposium 2026
           </p>
 
-          <h1>Admin Dashboard</h1>
+          <h1>
+            Admin Dashboard
+          </h1>
         </div>
 
         <div className="admin-user-area">
-          <span>{user.email}</span>
+          <span>
+            {user.email}
+          </span>
 
           <button
             type="button"
             className="admin-logout-button"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
             Sign Out
           </button>
@@ -124,16 +198,27 @@ function AdminDashboard() {
             Administration
           </p>
 
-          <h2>Symposium Management</h2>
+          <h2>
+            Symposium Management
+          </h2>
 
           <p>
-            Manage the MCS Symposium 2026 content from one
-            place. Changes made here will control what appears
-            on the public website.
+            Manage the MCS
+            Symposium 2026 content
+            from one place. Changes
+            made here will control
+            what appears on the
+            public website.
           </p>
         </section>
 
         <section className="admin-management-grid">
+          {/* Event Information */}
+          <ManagementCard
+            title="Event Information"
+            description="Manage symposium details, About content, dates, venue, contact information, HOD welcome content, hero branding, and other event settings."
+            path="/admin/event"
+          />
 
           {/* Schedule */}
           <ManagementCard
@@ -144,9 +229,16 @@ function AdminDashboard() {
 
           {/* Presenters */}
           <ManagementCard
-            title="Presenters"
-            description="Manage presenter information, topics, biographies, images, and LinkedIn profiles."
+            title="Presenters & Keynote Speakers"
+            description="Manage presenters, keynote speakers, projects, presentation details, biographies, images, screenshots, and professional links."
             path="/admin/presenters"
+          />
+
+          {/* Department Staff */}
+          <ManagementCard
+            title="Department Staff & Lecturers"
+            description="Manage department staff profiles, positions, specializations, biographies, photos, and public profile information."
+            path="/admin/staff"
           />
 
           {/* Announcements */}
@@ -172,18 +264,10 @@ function AdminDashboard() {
 
           {/* Sponsors */}
           <ManagementCard
-            title="Sponsors"
-            description="Manage sponsors, partners, logos, and partner information."
+            title="Sponsors & Partners"
+            description="Manage sponsors, partner organizations, sponsor tiers, logos, and partner information."
             path="/admin/sponsors"
           />
-
-          {/* Event Information */}
-          <ManagementCard
-            title="Event Information"
-            description="Manage official event details, dates, venue, contact information, and other event settings."
-            path="/admin/event"
-          />
-
         </section>
       </main>
     </div>

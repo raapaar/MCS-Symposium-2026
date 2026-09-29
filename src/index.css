@@ -3989,4 +3989,232 @@ select {
   }
 }
 
+/* =========================================================
+   PHASE 7.1D — DEPARTMENT STAFF & LECTURERS
+   ========================================================= */
+
+.staff-section {
+  padding: 6rem 1.5rem;
+  background: #f8fafc;
+}
+
+.staff-section .section-container {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.staff-heading {
+  max-width: 760px;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+
+.staff-heading h2 {
+  margin: 0.5rem 0 1rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.1;
+  color: #172033;
+}
+
+.staff-introduction {
+  margin: 0 auto;
+  max-width: 700px;
+  color: #64748b;
+  line-height: 1.8;
+}
+
+.staff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.staff-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.staff-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+}
+
+.staff-image-area {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #e8edf3;
+}
+
+.staff-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.staff-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      135deg,
+      #e2e8f0,
+      #f8fafc
+    );
+}
+
+.staff-image-placeholder span {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.staff-card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1.6rem;
+}
+
+.staff-specialization {
+  display: inline-flex;
+  align-self: flex-start;
+  margin-bottom: 0.85rem;
+  padding: 0.38rem 0.7rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.staff-card h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 1.35rem;
+  line-height: 1.3;
+}
+
+.staff-position {
+  margin: 0.45rem 0 0;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.staff-biography {
+  margin: 1rem 0 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.staff-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: auto;
+  padding-top: 1.4rem;
+}
+
+.staff-profile-link,
+.staff-email-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.staff-profile-link {
+  background: #172033;
+  color: #ffffff;
+}
+
+.staff-email-link {
+  background: #eef2f7;
+  color: #172033;
+}
+
+.staff-profile-link:hover,
+.staff-email-link:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 950px) {
+  .staff-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .staff-section {
+    padding: 4.5rem 1rem;
+  }
+
+  .staff-heading {
+    margin-bottom: 2rem;
+  }
+
+  .staff-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-card-content {
+    padding: 1.35rem;
+  }
+
+  .staff-links {
+    flex-direction: column;
+  }
+
+  .staff-profile-link,
+  .staff-email-link {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-card,
+  .staff-profile-link,
+  .staff-email-link {
+    transition: none;
+  }
+
+  .staff-card:hover,
+  .staff-profile-link:hover,
+  .staff-email-link:hover {
+    transform: none;
+  }
+}
+
 

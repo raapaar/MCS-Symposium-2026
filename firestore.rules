@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Check whether the signed-in user is an administrator.
+    function isAdmin() {
+      return request.auth != null
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == "admin";
+    }
+
+    // Administrator accounts and roles.
+    match /users/{userId} {
+      // A signed-in user may read their own user record.
+      allow read: if request.auth != null
+        && request.auth.uid == userId;
+
+      // Only an existing administrator can modify user records.
+      allow update, delete: if isAdmin();
+
+      // User records must be created manually/through a controlled process.
+      allow create: if false;
+    }
+
+    // Public event content.
+    match /event/{document} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Symposium schedule.
+    match /schedule/{programId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Presenters.
+    match /presenters/{presenterId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Announcements.
+    match /announcements/{announcementId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Documents.
+    match /documents/{documentId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Gallery.
+    match /gallery/{galleryId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Sponsors and partners.
+    match /sponsors/{sponsorId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Department staff and lecturers.
+    match /staff/{staffId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}
