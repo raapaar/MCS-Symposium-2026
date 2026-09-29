@@ -9,7 +9,9 @@ import {
   query,
   updateDoc,
 } from "firebase/firestore";
+
 import { db } from "../services/firebase";
+import storageProvider from "../services/storageProvider";
 
 interface DocumentRecord {
   id: string;
@@ -19,23 +21,45 @@ interface DocumentRecord {
   category: string;
   fileName: string;
   url: string;
+  filePath: string;
   published: boolean;
 }
 
-const emptyForm = {
+interface DocumentForm {
+  title: string;
+  description: string;
+  date: string;
+  category: string;
+  fileName: string;
+  url: string;
+  filePath: string;
+  published: boolean;
+}
+
+const emptyForm: DocumentForm = {
   title: "",
   description: "",
   date: "",
   category: "",
   fileName: "",
   url: "",
+  filePath: "",
   published: false,
 };
 
 function DocumentManager() {
-  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [documents, setDocuments] =
+    useState<DocumentRecord[]>([]);
+
+  const [form, setForm] =
+    useState<DocumentForm>(emptyForm);
+
+  const [selectedFile, setSelectedFile] =
+    useState<File | null>(null);
+
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -51,22 +75,25 @@ function DocumentManager() {
         orderBy("date", "desc"),
       );
 
-      const snapshot = await getDocs(documentsQuery);
+      const snapshot =
+        await getDocs(documentsQuery);
 
-      const records: DocumentRecord[] = snapshot.docs.map((document) => {
-        const data = document.data();
+      const records: DocumentRecord[] =
+        snapshot.docs.map((documentSnapshot) => {
+          const data = documentSnapshot.data();
 
-        return {
-          id: document.id,
-          title: data.title ?? "",
-          description: data.description ?? "",
-          date: data.date ?? "",
-          category: data.category ?? "",
-          fileName: data.fileName ?? "",
-          url: data.url ?? "",
-          published: data.published === true,
-        };
-      });
+          return {
+            id: documentSnapshot.id,
+            title: data.title ?? "",
+            description: data.description ?? "",
+            date: data.date ?? "",
+            category: data.category ?? "",
+            fileName: data.fileName ?? "",
+            url: data.url ?? "",
+            filePath: data.filePath ?? "",
+            published: data.published === true,
+          };
+        });
 
       setDocuments(records);
     } catch (loadError) {
@@ -78,18 +105,23 @@ function DocumentManager() {
   }
 
   useEffect(() => {
-    loadDocuments();
+    void loadDocuments();
   }, []);
 
   function handleChange(
     event: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement
     >,
   ) {
-    const { name, value, type } = event.target;
+    const { name, value, type } =
+      event.target;
 
     if (type === "checkbox") {
-      const checked = (event.target as HTMLInputElement).checked;
+      const checked = (
+        event.target as HTMLInputElement
+      ).checked;
 
       setForm((current) => ({
         ...current,
@@ -105,12 +137,55 @@ function DocumentManager() {
     }));
   }
 
+  function handleFileChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    setError("");
+
+    const file =
+      event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    if (file.type !== "application/pdf") {
+      setSelectedFile(null);
+      event.target.value = "";
+
+      setError(
+        "Only PDF documents are allowed.",
+      );
+
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setSelectedFile(null);
+      event.target.value = "";
+
+      setError(
+        "PDF document must not exceed 10 MB.",
+      );
+
+      return;
+    }
+
+    setSelectedFile(file);
+  }
+
   function resetForm() {
     setForm(emptyForm);
+    setSelectedFile(null);
     setEditingId(null);
   }
 
-  function startEdit(documentRecord: DocumentRecord) {
+  function startEdit(
+    documentRecord: DocumentRecord,
+  ) {
     setEditingId(documentRecord.id);
 
     setForm({
@@ -120,9 +195,11 @@ function DocumentManager() {
       category: documentRecord.category,
       fileName: documentRecord.fileName,
       url: documentRecord.url,
+      filePath: documentRecord.filePath,
       published: documentRecord.published,
     });
 
+    setSelectedFile(null);
     setMessage("");
     setError("");
 
@@ -132,7 +209,9 @@ function DocumentManager() {
     });
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     setMessage("");
@@ -144,7 +223,9 @@ function DocumentManager() {
     }
 
     if (!form.description.trim()) {
-      setError("Document description is required.");
+      setError(
+        "Document description is required.",
+      );
       return;
     }
 
@@ -154,63 +235,156 @@ function DocumentManager() {
     }
 
     if (!form.category.trim()) {
-      setError("Document category is required.");
+      setError(
+        "Document category is required.",
+      );
       return;
     }
 
-    if (!form.fileName.trim()) {
-      setError("File name is required.");
+    if (!editingId && !selectedFile) {
+      setError(
+        "Please select a PDF document.",
+      );
       return;
     }
 
-    if (form.url.trim()) {
-      try {
-        new URL(form.url.trim());
-      } catch {
-        setError("Please enter a valid document URL.");
-        return;
-      }
+    if (
+      editingId &&
+      !selectedFile &&
+      !form.url
+    ) {
+      setError(
+        "Please select a PDF document.",
+      );
+      return;
     }
 
-    const documentData = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      date: form.date,
-      category: form.category.trim(),
-      fileName: form.fileName.trim(),
-      url: form.url.trim(),
-      published: form.published,
-    };
+    setSaving(true);
+
+    let newFilePath = "";
+    let oldFilePathToDelete = "";
 
     try {
-      setSaving(true);
+      let url = form.url;
+      let filePath = form.filePath;
+      let fileName = form.fileName;
+
+      if (selectedFile) {
+        const uploadResult =
+          await storageProvider.uploadFile(
+            selectedFile,
+            "documents",
+          );
+
+        newFilePath = uploadResult.path;
+
+        if (
+          editingId &&
+          form.filePath
+        ) {
+          oldFilePathToDelete =
+            form.filePath;
+        }
+
+        url = uploadResult.url;
+        filePath = uploadResult.path;
+        fileName = selectedFile.name;
+      }
+
+      const documentData = {
+        title: form.title.trim(),
+        description:
+          form.description.trim(),
+        date: form.date,
+        category: form.category.trim(),
+        fileName,
+        url,
+        filePath,
+        published: form.published,
+      };
 
       if (editingId) {
-        await updateDoc(doc(db, "documents", editingId), documentData);
-        setMessage("Document updated successfully.");
+        await updateDoc(
+          doc(db, "documents", editingId),
+          documentData,
+        );
+
+        setMessage(
+          "Document updated successfully.",
+        );
       } else {
-        await addDoc(collection(db, "documents"), documentData);
-        setMessage("Document added successfully.");
+        await addDoc(
+          collection(db, "documents"),
+          documentData,
+        );
+
+        setMessage(
+          "Document added successfully.",
+        );
+      }
+
+      if (
+        oldFilePathToDelete &&
+        oldFilePathToDelete !== filePath
+      ) {
+        try {
+          await storageProvider.deleteFile(
+            oldFilePathToDelete,
+          );
+        } catch (deleteError) {
+          console.error(
+            "Old document could not be deleted:",
+            deleteError,
+          );
+        }
       }
 
       resetForm();
       await loadDocuments();
     } catch (saveError) {
       console.error(saveError);
-      setError("Unable to save the document.");
+
+      if (newFilePath) {
+        try {
+          await storageProvider.deleteFile(
+            newFilePath,
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Uploaded document cleanup failed:",
+            cleanupError,
+          );
+        }
+      }
+
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save the document.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  async function togglePublished(documentRecord: DocumentRecord) {
+  async function togglePublished(
+    documentRecord: DocumentRecord,
+  ) {
     setMessage("");
     setError("");
 
     try {
-      await updateDoc(doc(db, "documents", documentRecord.id), {
-        published: !documentRecord.published,
-      });
+      await updateDoc(
+        doc(
+          db,
+          "documents",
+          documentRecord.id,
+        ),
+        {
+          published:
+            !documentRecord.published,
+        },
+      );
 
       setMessage(
         documentRecord.published
@@ -221,11 +395,16 @@ function DocumentManager() {
       await loadDocuments();
     } catch (toggleError) {
       console.error(toggleError);
-      setError("Unable to change the document publication status.");
+
+      setError(
+        "Unable to change the document publication status.",
+      );
     }
   }
 
-  async function handleDelete(documentRecord: DocumentRecord) {
+  async function handleDelete(
+    documentRecord: DocumentRecord,
+  ) {
     const confirmed = window.confirm(
       `Delete "${documentRecord.title}"? This cannot be undone.`,
     );
@@ -238,17 +417,44 @@ function DocumentManager() {
     setError("");
 
     try {
-      await deleteDoc(doc(db, "documents", documentRecord.id));
+      await deleteDoc(
+        doc(
+          db,
+          "documents",
+          documentRecord.id,
+        ),
+      );
 
-      if (editingId === documentRecord.id) {
+      if (documentRecord.filePath) {
+        try {
+          await storageProvider.deleteFile(
+            documentRecord.filePath,
+          );
+        } catch (deleteError) {
+          console.error(
+            "Document file could not be deleted:",
+            deleteError,
+          );
+        }
+      }
+
+      if (
+        editingId === documentRecord.id
+      ) {
         resetForm();
       }
 
-      setMessage("Document deleted successfully.");
+      setMessage(
+        "Document deleted successfully.",
+      );
+
       await loadDocuments();
     } catch (deleteError) {
       console.error(deleteError);
-      setError("Unable to delete the document.");
+
+      setError(
+        "Unable to delete the document.",
+      );
     }
   }
 
@@ -257,12 +463,16 @@ function DocumentManager() {
       <div className="admin-container">
         <div className="admin-header">
           <div>
-            <span className="section-eyebrow">Administration</span>
+            <span className="section-eyebrow">
+              Administration
+            </span>
 
             <h1>Document Manager</h1>
 
             <p>
-              Add, edit, publish, unpublish, and delete symposium documents.
+              Upload, edit, publish,
+              unpublish, and delete symposium
+              PDF documents.
             </p>
           </div>
 
@@ -271,7 +481,8 @@ function DocumentManager() {
               type="button"
               className="admin-secondary-button"
               onClick={() => {
-                window.location.href = "/admin/dashboard";
+                window.location.href =
+                  "/admin/dashboard";
               }}
             >
               Dashboard
@@ -289,18 +500,32 @@ function DocumentManager() {
           </div>
         </div>
 
-        {message && <div className="admin-message">{message}</div>}
+        {message && (
+          <div className="admin-message">
+            {message}
+          </div>
+        )}
 
-        {error && <div className="admin-message admin-message-error">{error}</div>}
+        {error && (
+          <div className="admin-message admin-message-error">
+            {error}
+          </div>
+        )}
 
         <section className="admin-form-card">
           <div className="admin-card-heading">
             <div>
               <span className="section-eyebrow">
-                {editingId ? "Edit Document" : "Add Document"}
+                {editingId
+                  ? "Edit Document"
+                  : "Add Document"}
               </span>
 
-              <h2>{editingId ? "Update Document" : "Create Document"}</h2>
+              <h2>
+                {editingId
+                  ? "Update Document"
+                  : "Create Document"}
+              </h2>
             </div>
 
             {editingId && (
@@ -308,13 +533,17 @@ function DocumentManager() {
                 type="button"
                 className="admin-secondary-button"
                 onClick={resetForm}
+                disabled={saving}
               >
                 Cancel Edit
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="admin-form">
+          <form
+            onSubmit={handleSubmit}
+            className="admin-form"
+          >
             <div className="admin-form-grid">
               <label>
                 <span>Title</span>
@@ -351,32 +580,53 @@ function DocumentManager() {
                 />
               </label>
 
-              <label>
-                <span>File Name</span>
-
-                <input
-                  type="text"
-                  name="fileName"
-                  value={form.fileName}
-                  onChange={handleChange}
-                  placeholder="official-program.pdf"
-                />
-              </label>
-
               <label className="admin-form-full">
-                <span>Document URL</span>
+                <span>PDF Document</span>
 
                 <input
-                  type="url"
-                  name="url"
-                  value={form.url}
-                  onChange={handleChange}
-                  placeholder="https://example.com/document.pdf"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={handleFileChange}
                 />
 
                 <small>
-                  Leave blank until the official document is available.
+                  PDF only. Maximum file size:
+                  10 MB.
+                  {editingId &&
+                    " Leave unchanged to keep the current document."}
                 </small>
+
+                {selectedFile && (
+                  <p>
+                    Selected:{" "}
+                    <strong>
+                      {selectedFile.name}
+                    </strong>
+                  </p>
+                )}
+
+                {!selectedFile &&
+                  form.fileName && (
+                    <p>
+                      Current document:{" "}
+                      <strong>
+                        {form.fileName}
+                      </strong>
+                    </p>
+                  )}
+
+                {!selectedFile &&
+                  form.url && (
+                    <p>
+                      <a
+                        href={form.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open Current Document
+                      </a>
+                    </p>
+                  )}
               </label>
 
               <label className="admin-form-full">
@@ -410,7 +660,9 @@ function DocumentManager() {
                 disabled={saving}
               >
                 {saving
-                  ? "Saving..."
+                  ? selectedFile
+                    ? "Uploading & Saving..."
+                    : "Saving..."
                   : editingId
                     ? "Update Document"
                     : "Add Document"}
@@ -433,79 +685,125 @@ function DocumentManager() {
         <section className="admin-list-section">
           <div className="admin-card-heading">
             <div>
-              <span className="section-eyebrow">Existing Documents</span>
+              <span className="section-eyebrow">
+                Existing Documents
+              </span>
 
               <h2>Document Library</h2>
             </div>
           </div>
 
           {loading ? (
-            <div className="admin-message">Loading documents...</div>
+            <div className="admin-message">
+              Loading documents...
+            </div>
           ) : documents.length === 0 ? (
             <div className="admin-message">
               No documents have been added yet.
             </div>
           ) : (
             <div className="admin-list">
-              {documents.map((documentRecord) => (
-                <article className="admin-list-item" key={documentRecord.id}>
-                  <div className="admin-list-content">
-                    <div className="admin-list-meta">
-                      <span>{documentRecord.category}</span>
+              {documents.map(
+                (documentRecord) => (
+                  <article
+                    className="admin-list-item"
+                    key={documentRecord.id}
+                  >
+                    <div className="admin-list-content">
+                      <div className="admin-list-meta">
+                        <span>
+                          {
+                            documentRecord.category
+                          }
+                        </span>
 
-                      <span>
-                        {documentRecord.published ? "Published" : "Draft"}
-                      </span>
+                        <span>
+                          {documentRecord.published
+                            ? "Published"
+                            : "Draft"}
+                        </span>
+                      </div>
+
+                      <h3>
+                        {documentRecord.title}
+                      </h3>
+
+                      <p>
+                        {
+                          documentRecord.description
+                        }
+                      </p>
+
+                      <div className="admin-list-details">
+                        <span>
+                          {
+                            documentRecord.fileName
+                          }
+                        </span>
+
+                        <span>
+                          {documentRecord.date}
+                        </span>
+
+                        {documentRecord.url && (
+                          <a
+                            href={
+                              documentRecord.url
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open Document
+                          </a>
+                        )}
+                      </div>
                     </div>
 
-                    <h3>{documentRecord.title}</h3>
+                    <div className="admin-list-actions">
+                      <button
+                        type="button"
+                        className="admin-secondary-button"
+                        onClick={() =>
+                          startEdit(
+                            documentRecord,
+                          )
+                        }
+                        disabled={saving}
+                      >
+                        Edit
+                      </button>
 
-                    <p>{documentRecord.description}</p>
+                      <button
+                        type="button"
+                        className="admin-secondary-button"
+                        onClick={() =>
+                          togglePublished(
+                            documentRecord,
+                          )
+                        }
+                        disabled={saving}
+                      >
+                        {documentRecord.published
+                          ? "Unpublish"
+                          : "Publish"}
+                      </button>
 
-                    <div className="admin-list-details">
-                      <span>{documentRecord.fileName}</span>
-
-                      <span>{documentRecord.date}</span>
-
-                      {documentRecord.url && (
-                        <a
-                          href={documentRecord.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open Document
-                        </a>
-                      )}
+                      <button
+                        type="button"
+                        className="admin-danger-button"
+                        onClick={() =>
+                          handleDelete(
+                            documentRecord,
+                          )
+                        }
+                        disabled={saving}
+                      >
+                        Delete
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="admin-list-actions">
-                    <button
-                      type="button"
-                      className="admin-secondary-button"
-                      onClick={() => startEdit(documentRecord)}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      className="admin-secondary-button"
-                      onClick={() => togglePublished(documentRecord)}
-                    >
-                      {documentRecord.published ? "Unpublish" : "Publish"}
-                    </button>
-
-                    <button
-                      type="button"
-                      className="admin-danger-button"
-                      onClick={() => handleDelete(documentRecord)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ),
+              )}
             </div>
           )}
         </section>
