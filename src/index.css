@@ -6924,3 +6924,614 @@ body {
       !important;
   }
 }
+
+
+/* =========================================================
+   PHASE 7.1 — COMPACT PEOPLE CARDS
+   Presenter / Keynote / Staff public sections
+   ========================================================= */
+
+/* ---------- PRESENTERS + KEYNOTES ---------- */
+
+.presenter-grid,
+.keynote-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 300px)) !important;
+  gap: 1.5rem !important;
+  justify-content: start !important;
+  align-items: stretch !important;
+}
+
+.presenter-card {
+  width: 100% !important;
+  max-width: 300px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  align-self: start !important;
+}
+
+.presenter-image-placeholder {
+  width: 100% !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  aspect-ratio: auto !important;
+}
+
+.presenter-image-placeholder img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.presenter-content {
+  padding: 1.15rem !important;
+}
+
+.presenter-content h3 {
+  font-size: 1.15rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.presenter-role {
+  font-size: 0.88rem !important;
+  margin-bottom: 0.85rem !important;
+}
+
+.presenter-topic-block {
+  margin-top: 0.8rem !important;
+}
+
+.presenter-topic {
+  font-size: 0.9rem !important;
+  line-height: 1.45 !important;
+}
+
+.presenter-card-actions {
+  margin-top: 1rem !important;
+}
+
+
+/* ---------- STAFF + LECTURERS ---------- */
+
+.staff-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 300px)) !important;
+  gap: 1.5rem !important;
+  justify-content: start !important;
+  align-items: stretch !important;
+}
+
+.staff-card {
+  width: 100% !important;
+  max-width: 300px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  align-self: start !important;
+}
+
+.staff-image-area {
+  width: 100% !important;
+  height: 210px !important;
+  min-height: 210px !important;
+}
+
+.staff-image,
+.staff-image-placeholder {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.staff-card-content {
+  padding: 1.15rem !important;
+}
+
+.staff-card-content h3 {
+  font-size: 1.15rem !important;
+  margin-bottom: 0.3rem !important;
+}
+
+.staff-position {
+  font-size: 0.88rem !important;
+}
+
+.staff-biography {
+  font-size: 0.88rem !important;
+  line-height: 1.5 !important;
+
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden !important;
+}
+
+.staff-links {
+  margin-top: 1rem !important;
+}
+
+
+/* ---------- TABLET ---------- */
+
+@media (max-width: 900px) {
+  .presenter-grid,
+  .keynote-grid,
+  .staff-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .presenter-card,
+  .staff-card {
+    max-width: none !important;
+  }
+}
+
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 600px) {
+  .presenter-grid,
+  .keynote-grid,
+  .staff-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .presenter-card,
+  .staff-card {
+    width: 100% !important;
+    max-width: 340px !important;
+    margin-inline: auto !important;
+  }
+
+  .presenter-image-placeholder,
+  .staff-image-area {
+    height: 190px !important;
+    min-height: 190px !important;
+  }
+
+  .presenter-content,
+  .staff-card-content {
+    padding: 1rem !important;
+  }
+}
+
+/* =========================================================
+   PHASE 7.1 — COMPACT DIRECTORY CARDS
+   Keynotes / Presenters / Staff / Sponsors
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   KEYNOTES + PRESENTERS
+   --------------------------------------------------------- */
+
+.presenter-grid {
+  display: grid !important;
+  grid-template-columns:
+    repeat(auto-fill, minmax(180px, 210px)) !important;
+  gap: 1rem !important;
+  justify-content: start !important;
+  align-items: start !important;
+}
+
+.presenter-card {
+  width: 100% !important;
+  max-width: 210px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  align-self: start !important;
+  overflow: hidden !important;
+  border-radius: 14px !important;
+}
+
+/* Keynotes remain slightly more prominent */
+
+.keynote-grid {
+  grid-template-columns:
+    repeat(auto-fill, minmax(200px, 235px)) !important;
+}
+
+.keynote-grid .presenter-card {
+  max-width: 235px !important;
+}
+
+
+/* Presenter images */
+
+.presenter-image-placeholder {
+  width: 100% !important;
+  height: 145px !important;
+  min-height: 145px !important;
+  aspect-ratio: auto !important;
+}
+
+.keynote-grid .presenter-image-placeholder {
+  height: 165px !important;
+  min-height: 165px !important;
+}
+
+.presenter-image-placeholder img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+
+/* Presenter information */
+
+.presenter-content {
+  padding: 0.85rem !important;
+}
+
+.presenter-card-labels {
+  margin-bottom: 0.4rem !important;
+}
+
+.presenter-category {
+  font-size: 0.62rem !important;
+  padding: 0.25rem 0.45rem !important;
+}
+
+.presenter-content h3 {
+  margin: 0 0 0.25rem !important;
+  font-size: 1rem !important;
+  line-height: 1.25 !important;
+}
+
+.presenter-role {
+  margin: 0 0 0.55rem !important;
+  font-size: 0.76rem !important;
+  line-height: 1.35 !important;
+}
+
+
+/* Project title stays short on directory card */
+
+.presenter-topic-block {
+  margin: 0.55rem 0 0 !important;
+}
+
+.presenter-topic-label {
+  font-size: 0.58rem !important;
+}
+
+.presenter-topic {
+  margin-top: 0.2rem !important;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden !important;
+}
+
+
+/* Compact actions */
+
+.presenter-card-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0.4rem !important;
+  margin-top: 0.7rem !important;
+}
+
+.presenter-view-button {
+  width: 100% !important;
+  min-height: 34px !important;
+  padding: 0.45rem 0.65rem !important;
+  font-size: 0.72rem !important;
+}
+
+.presenter-linkedin {
+  font-size: 0.7rem !important;
+}
+
+
+/* ---------------------------------------------------------
+   STAFF + LECTURERS
+   --------------------------------------------------------- */
+
+.staff-grid {
+  display: grid !important;
+  grid-template-columns:
+    repeat(auto-fill, minmax(180px, 210px)) !important;
+  gap: 1rem !important;
+  justify-content: start !important;
+  align-items: start !important;
+}
+
+.staff-card {
+  width: 100% !important;
+  max-width: 210px !important;
+  min-width: 0 !important;
+  height: auto !important;
+  align-self: start !important;
+  overflow: hidden !important;
+  border-radius: 14px !important;
+}
+
+.staff-image-area {
+  width: 100% !important;
+  height: 145px !important;
+  min-height: 145px !important;
+}
+
+.staff-image,
+.staff-image-placeholder {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.staff-image {
+  object-fit: cover !important;
+}
+
+.staff-card-content {
+  padding: 0.85rem !important;
+}
+
+.staff-specialization {
+  font-size: 0.62rem !important;
+}
+
+.staff-card-content h3 {
+  margin: 0.4rem 0 0.2rem !important;
+  font-size: 1rem !important;
+  line-height: 1.25 !important;
+}
+
+.staff-position {
+  margin: 0 !important;
+  font-size: 0.76rem !important;
+  line-height: 1.35 !important;
+}
+
+
+/*
+   Staff cards are navigation/identity cards.
+   Hide the biography here to avoid very tall cards.
+   The data remains stored in Firestore.
+*/
+
+.staff-biography {
+  display: none !important;
+}
+
+.staff-links {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.45rem !important;
+  margin-top: 0.65rem !important;
+}
+
+.staff-profile-link,
+.staff-email-link {
+  font-size: 0.7rem !important;
+}
+
+
+/* ---------------------------------------------------------
+   SPONSORS
+   --------------------------------------------------------- */
+
+.sponsors-grid {
+  display: grid !important;
+  grid-template-columns:
+    repeat(auto-fill, minmax(140px, 170px)) !important;
+  gap: 0.9rem !important;
+  justify-content: start !important;
+  align-items: start !important;
+  margin-top: 2rem !important;
+}
+
+.sponsor-card {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+
+  width: 100% !important;
+  max-width: 170px !important;
+  min-width: 0 !important;
+
+  gap: 0 !important;
+  padding: 0 !important;
+
+  overflow: hidden !important;
+  border-radius: 12px !important;
+}
+
+
+/* Sponsor logo becomes the main visual */
+
+.sponsor-logo-wrapper {
+  width: 100% !important;
+  height: 105px !important;
+
+  padding: 0.8rem !important;
+  border-radius: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sponsor-logo {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+.sponsor-logo-placeholder {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  font-size: 1.4rem !important;
+}
+
+
+/* Sponsor details */
+
+.sponsor-content {
+  padding: 0.7rem !important;
+}
+
+.sponsor-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.3rem !important;
+  margin-bottom: 0.4rem !important;
+}
+
+.sponsor-tier,
+.sponsor-category {
+  font-size: 0.55rem !important;
+}
+
+.sponsor-content h3 {
+  margin: 0 0 0.35rem !important;
+  font-size: 0.88rem !important;
+  line-height: 1.25 !important;
+}
+
+
+/*
+   Descriptions remain in Firestore/admin but don't need
+   to consume space in the public sponsor directory.
+*/
+
+.sponsor-content > p {
+  display: none !important;
+}
+
+.sponsor-link {
+  display: inline-block !important;
+  margin-top: 0.25rem !important;
+  font-size: 0.68rem !important;
+}
+
+
+/* ---------------------------------------------------------
+   TABLET
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .presenter-grid,
+  .staff-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .keynote-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .presenter-card,
+  .keynote-grid .presenter-card,
+  .staff-card {
+    max-width: none !important;
+  }
+
+  .sponsors-grid {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .sponsor-card {
+    max-width: none !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE
+   Keep directory navigation compact: 2 columns.
+   --------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .presenter-grid,
+  .keynote-grid,
+  .staff-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+
+    gap: 0.7rem !important;
+  }
+
+  .presenter-card,
+  .keynote-grid .presenter-card,
+  .staff-card {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .presenter-image-placeholder,
+  .keynote-grid .presenter-image-placeholder,
+  .staff-image-area {
+    height: 120px !important;
+    min-height: 120px !important;
+  }
+
+  .presenter-content,
+  .staff-card-content {
+    padding: 0.7rem !important;
+  }
+
+  .presenter-content h3,
+  .staff-card-content h3 {
+    font-size: 0.9rem !important;
+  }
+
+  .presenter-role,
+  .staff-position {
+    font-size: 0.7rem !important;
+  }
+
+  .presenter-topic {
+    font-size: 0.7rem !important;
+  }
+
+  .sponsors-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+
+    gap: 0.6rem !important;
+  }
+
+  .sponsor-card {
+    max-width: none !important;
+  }
+
+  .sponsor-logo-wrapper {
+    height: 78px !important;
+    padding: 0.55rem !important;
+  }
+
+  .sponsor-content {
+    padding: 0.55rem !important;
+  }
+
+  .sponsor-content h3 {
+    font-size: 0.75rem !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   VERY SMALL PHONES
+   --------------------------------------------------------- */
+
+@media (max-width: 380px) {
+  .sponsors-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
