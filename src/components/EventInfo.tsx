@@ -450,73 +450,54 @@ function EventInfo() {
             </a>
           </div>
 
-          {event.eventDate &&
-            event.eventStartTime && (
-              <div className="event-countdown">
-                {countdown.started ? (
-                  <div className="event-live-message">
-                    The Symposium Is
-                    Underway
-                  </div>
-                ) : (
-                  <>
-                    <div className="countdown-heading">
-                      Symposium Begins In
-                    </div>
+       {event.eventDate &&
+  event.eventStartTime && (
+    <div className="event-countdown">
+      {countdown.started ? (
+        <div className="event-live-message">
+          The Symposium Is Underway
+        </div>
+      ) : (
+        <>
+          <div className="countdown-heading">
+            Symposium Begins In
+          </div>
 
-                    <div className="countdown-grid">
-                      <div className="countdown-item">
-                        <strong>
-                          {countdown.days}
-                        </strong>
-                        <span>Days</span>
-                      </div>
+          <div className="countdown-grid">
+            <div className="countdown-item">
+              <strong>{countdown.days}</strong>
+              <span>Days</span>
+            </div>
 
-                      <div className="countdown-item">
-                        <strong>
-                          {String(
-                            countdown.hours,
-                          ).padStart(
-                            2,
-                            "0",
-                          )}
-                        <SponsorLogos mode="gold" />
-                        </strong>
-                        <span>Hours</span>
-                      </div>
+            <div className="countdown-item">
+              <strong>
+                {String(countdown.hours).padStart(2, "0")}
+              </strong>
+              <span>Hours</span>
+            </div>
 
-                      <div className="countdown-item">
-                        <strong>
-                          {String(
-                            countdown.minutes,
-                          ).padStart(
-                            2,
-                            "0",
-                          )}
-                        </strong>
-                        <span>
-                          Minutes
-                        </span>
-                      </div>
+            <div className="countdown-item">
+              <strong>
+                {String(countdown.minutes).padStart(2, "0")}
+              </strong>
+              <span>Minutes</span>
+            </div>
 
-                      <div className="countdown-item">
-                        <strong>
-                          {String(
-                            countdown.seconds,
-                          ).padStart(
-                            2,
-                            "0",
-                          )}
-                        </strong>
-                        <span>
-                          Seconds
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            <div className="countdown-item">
+              <strong>
+                {String(countdown.seconds).padStart(2, "0")}
+              </strong>
+              <span>Seconds</span>
+            </div>
+          </div>
+
+          <div className="countdown-sponsors">
+            <SponsorLogos mode="gold" />
+          </div>
+        </>
+      )}
+    </div>
+  )}
         </div>
       </section>
 

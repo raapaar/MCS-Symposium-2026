@@ -12,6 +12,11 @@ import {
 
 import { db } from "../services/firebase";
 
+import type {
+  ScheduleSegment,
+  ScheduleStatus,
+} from "../types/schedule";
+
 interface ScheduleProgram {
   id: string;
   time: string;
@@ -19,6 +24,10 @@ interface ScheduleProgram {
   title: string;
   description: string;
   location: string;
+  isPresenter: boolean;
+  presenterName: string;
+  status: ScheduleStatus;
+  segment: ScheduleSegment;
   order: number;
   published: boolean;
 }
@@ -29,6 +38,10 @@ interface ScheduleForm {
   title: string;
   description: string;
   location: string;
+  isPresenter: boolean;
+  presenterName: string;
+  status: ScheduleStatus;
+  segment: ScheduleSegment;
   order: number;
   published: boolean;
 }
@@ -39,16 +52,45 @@ const emptyForm: ScheduleForm = {
   title: "",
   description: "",
   location: "",
+  isPresenter: false,
+  presenterName: "",
+  status: "upcoming",
+  segment: 1,
   order: 1,
   published: false,
 };
 
+function normalizeSegment(
+  value: unknown,
+): ScheduleSegment {
+  const segment = Number(value);
+
+  if (
+    segment === 2 ||
+    segment === 3 ||
+    segment === 4
+  ) {
+    return segment;
+  }
+
+  return 1;
+}
+
 function ScheduleManager() {
-  const [programs, setPrograms] = useState<ScheduleProgram[]>([]);
-  const [form, setForm] = useState<ScheduleForm>(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [programs, setPrograms] = useState<
+    ScheduleProgram[]
+  >([]);
+
+  const [form, setForm] =
+    useState<ScheduleForm>(emptyForm);
+
+  const [editingId, setEditingId] = useState<
+    string | null
+  >(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -57,33 +99,50 @@ function ScheduleManager() {
     setError("");
 
     try {
-      const scheduleQuery = query(
-        collection(db, "schedule"),
-        orderBy("order", "asc"),
+      const snapshot = await getDocs(
+        query(
+          collection(db, "schedule"),
+          orderBy("order", "asc"),
+        ),
       );
 
-      const snapshot = await getDocs(scheduleQuery);
-
-      const loadedPrograms: ScheduleProgram[] = snapshot.docs.map(
-        (scheduleDoc) => {
+      const loadedPrograms =
+        snapshot.docs.map((scheduleDoc) => {
           const data = scheduleDoc.data();
+
+          const status: ScheduleStatus =
+            data.status === "active" ||
+            data.status === "completed"
+              ? data.status
+              : "upcoming";
 
           return {
             id: scheduleDoc.id,
             time: data.time ?? "",
             type: data.type ?? "",
             title: data.title ?? "",
-            description: data.description ?? "",
+            description:
+              data.description ?? "",
             location: data.location ?? "",
+            isPresenter:
+              data.isPresenter === true,
+            presenterName:
+              data.presenterName ?? "",
+            status,
+            segment: normalizeSegment(
+              data.segment,
+            ),
             order: Number(data.order ?? 0),
-            published: data.published === true,
+            published:
+              data.published === true,
           };
-        },
-      );
+        });
 
       setPrograms(loadedPrograms);
     } catch {
-      setError("Unable to load the symposium schedule.");
+      setError(
+        "Unable to load the symposium schedule.",
+      );
     } finally {
       setLoading(false);
     }
@@ -95,10 +154,15 @@ function ScheduleManager() {
 
   const handleInputChange = (
     field: keyof ScheduleForm,
-    value: string | boolean | number,
+    value:
+      | string
+      | boolean
+      | number
+      | ScheduleSegment
+      | ScheduleStatus,
   ) => {
-    setForm((currentForm) => ({
-      ...currentForm,
+    setForm((current) => ({
+      ...current,
       [field]: value,
     }));
   };
@@ -135,6 +199,16 @@ function ScheduleManager() {
       return;
     }
 
+    if (
+      form.isPresenter &&
+      !form.presenterName.trim()
+    ) {
+      setError(
+        "Presenter name is required for presenter sessions.",
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -142,8 +216,18 @@ function ScheduleManager() {
         time: form.time.trim(),
         type: form.type.trim(),
         title: form.title.trim(),
-        description: form.description.trim(),
+        description:
+          form.description.trim(),
         location: form.location.trim(),
+
+        isPresenter: form.isPresenter,
+
+        presenterName: form.isPresenter
+          ? form.presenterName.trim()
+          : "",
+
+        status: form.status,
+        segment: form.segment,
         order: Number(form.order),
         published: form.published,
       };
@@ -154,26 +238,34 @@ function ScheduleManager() {
           programData,
         );
 
-        setMessage("Schedule program updated successfully.");
+        setMessage(
+          "Schedule program updated successfully.",
+        );
       } else {
         await addDoc(
           collection(db, "schedule"),
           programData,
         );
 
-        setMessage("Schedule program added successfully.");
+        setMessage(
+          "Schedule program added successfully.",
+        );
       }
 
       resetForm();
       await loadPrograms();
     } catch {
-      setError("Unable to save the schedule program.");
+      setError(
+        "Unable to save the schedule program.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEdit = (program: ScheduleProgram) => {
+  const handleEdit = (
+    program: ScheduleProgram,
+  ) => {
     setEditingId(program.id);
 
     setForm({
@@ -182,47 +274,65 @@ function ScheduleManager() {
       title: program.title,
       description: program.description,
       location: program.location,
+      isPresenter: program.isPresenter,
+      presenterName:
+        program.presenterName,
+      status: program.status,
+      segment: program.segment,
       order: program.order,
       published: program.published,
     });
 
     setMessage("");
     setError("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
-  const handleDelete = async (programId: string) => {
-    const confirmed = window.confirm(
-      "Delete this schedule program?",
-    );
-
-    if (!confirmed) {
+  const handleDelete = async (
+    id: string,
+  ) => {
+    if (
+      !window.confirm(
+        "Delete this schedule program?",
+      )
+    ) {
       return;
     }
 
-    setError("");
-    setMessage("");
-
     try {
-      await deleteDoc(doc(db, "schedule", programId));
+      await deleteDoc(
+        doc(db, "schedule", id),
+      );
 
-      setMessage("Schedule program deleted.");
+      setMessage(
+        "Schedule program deleted.",
+      );
+
       await loadPrograms();
     } catch {
-      setError("Unable to delete the schedule program.");
+      setError(
+        "Unable to delete the schedule program.",
+      );
     }
   };
 
   const handlePublishToggle = async (
     program: ScheduleProgram,
   ) => {
-    setError("");
-    setMessage("");
-
     try {
       await updateDoc(
-        doc(db, "schedule", program.id),
+        doc(
+          db,
+          "schedule",
+          program.id,
+        ),
         {
-          published: !program.published,
+          published:
+            !program.published,
         },
       );
 
@@ -234,7 +344,47 @@ function ScheduleManager() {
 
       await loadPrograms();
     } catch {
-      setError("Unable to update publication status.");
+      setError(
+        "Unable to update publication status.",
+      );
+    }
+  };
+
+  const handleStatusChange = async (
+    program: ScheduleProgram,
+    status: ScheduleStatus,
+  ) => {
+    try {
+      await updateDoc(
+        doc(
+          db,
+          "schedule",
+          program.id,
+        ),
+        {
+          status,
+        },
+      );
+
+      if (status === "completed") {
+        setMessage(
+          "Program marked as completed.",
+        );
+      } else if (status === "active") {
+        setMessage(
+          "Program marked as happening now.",
+        );
+      } else {
+        setMessage(
+          "Program marked as upcoming.",
+        );
+      }
+
+      await loadPrograms();
+    } catch {
+      setError(
+        "Unable to update program status.",
+      );
     }
   };
 
@@ -242,7 +392,10 @@ function ScheduleManager() {
     <div className="admin-dashboard">
       <header className="admin-dashboard-header">
         <div>
-          <p className="section-eyebrow">MCS Symposium 2026</p>
+          <p className="section-eyebrow">
+            MCS Symposium 2026
+          </p>
+
           <h1>Schedule Manager</h1>
         </div>
 
@@ -250,7 +403,8 @@ function ScheduleManager() {
           type="button"
           className="admin-logout-button"
           onClick={() => {
-            window.location.href = "/admin/dashboard";
+            window.location.href =
+              "/admin/dashboard";
           }}
         >
           ← Dashboard
@@ -270,8 +424,10 @@ function ScheduleManager() {
           </h2>
 
           <p>
-            Add and manage symposium programs. Programs can
-            remain as drafts until the information is confirmed.
+            Organize the symposium into four
+            program segments, manage concurrent
+            SPBA and E50 sessions, and control
+            each program's live status.
           </p>
         </section>
 
@@ -282,6 +438,41 @@ function ScheduleManager() {
           >
             <div className="admin-form-grid">
               <div className="admin-form-group">
+                <label htmlFor="schedule-segment">
+                  Program Segment
+                </label>
+
+                <select
+                  id="schedule-segment"
+                  value={form.segment}
+                  onChange={(event) =>
+                    handleInputChange(
+                      "segment",
+                      Number(
+                        event.target.value,
+                      ) as ScheduleSegment,
+                    )
+                  }
+                >
+                  <option value={1}>
+                    Segment 1
+                  </option>
+
+                  <option value={2}>
+                    Segment 2
+                  </option>
+
+                  <option value={3}>
+                    Segment 3
+                  </option>
+
+                  <option value={4}>
+                    Segment 4
+                  </option>
+                </select>
+              </div>
+
+              <div className="admin-form-group">
                 <label htmlFor="schedule-time">
                   Time
                 </label>
@@ -289,7 +480,7 @@ function ScheduleManager() {
                 <input
                   id="schedule-time"
                   type="text"
-                  placeholder="09:00 AM"
+                  placeholder="09:00 AM - 09:15 AM"
                   value={form.time}
                   onChange={(event) =>
                     handleInputChange(
@@ -309,7 +500,7 @@ function ScheduleManager() {
                 <input
                   id="schedule-type"
                   type="text"
-                  placeholder="Keynote"
+                  placeholder="Presentation"
                   value={form.type}
                   onChange={(event) =>
                     handleInputChange(
@@ -321,6 +512,43 @@ function ScheduleManager() {
                 />
               </div>
 
+              <div className="admin-form-group">
+                <label htmlFor="schedule-location">
+                  Venue
+                </label>
+
+                <select
+                  id="schedule-location"
+                  value={form.location}
+                  onChange={(event) =>
+                    handleInputChange(
+                      "location",
+                      event.target.value,
+                    )
+                  }
+                >
+                  <option value="">
+                    Select venue
+                  </option>
+
+                  <option value="SPBA">
+                    SPBA
+                  </option>
+
+                  <option value="E50">
+                    E50
+                  </option>
+
+                  <option value="SPBA & E50">
+                    SPBA & E50
+                  </option>
+
+                  <option value="Main Program">
+                    Main Program
+                  </option>
+                </select>
+              </div>
+
               <div className="admin-form-group admin-form-full">
                 <label htmlFor="schedule-title">
                   Program Title
@@ -329,7 +557,7 @@ function ScheduleManager() {
                 <input
                   id="schedule-title"
                   type="text"
-                  placeholder="Keynote Presentation"
+                  placeholder="Presentation or activity title"
                   value={form.title}
                   onChange={(event) =>
                     handleInputChange(
@@ -349,7 +577,7 @@ function ScheduleManager() {
                 <textarea
                   id="schedule-description"
                   rows={4}
-                  placeholder="Program description"
+                  placeholder="Optional program details"
                   value={form.description}
                   onChange={(event) =>
                     handleInputChange(
@@ -361,22 +589,33 @@ function ScheduleManager() {
               </div>
 
               <div className="admin-form-group">
-                <label htmlFor="schedule-location">
-                  Location
+                <label htmlFor="schedule-status">
+                  Program Status
                 </label>
 
-                <input
-                  id="schedule-location"
-                  type="text"
-                  placeholder="Main Venue"
-                  value={form.location}
+                <select
+                  id="schedule-status"
+                  value={form.status}
                   onChange={(event) =>
                     handleInputChange(
-                      "location",
-                      event.target.value,
+                      "status",
+                      event.target
+                        .value as ScheduleStatus,
                     )
                   }
-                />
+                >
+                  <option value="upcoming">
+                    Upcoming
+                  </option>
+
+                  <option value="active">
+                    Live / Happening Now
+                  </option>
+
+                  <option value="completed">
+                    Completed
+                  </option>
+                </select>
               </div>
 
               <div className="admin-form-group">
@@ -392,11 +631,59 @@ function ScheduleManager() {
                   onChange={(event) =>
                     handleInputChange(
                       "order",
-                      Number(event.target.value),
+                      Number(
+                        event.target.value,
+                      ),
                     )
                   }
                 />
               </div>
+
+              <div className="admin-form-group admin-form-full">
+                <label className="admin-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={
+                      form.isPresenter
+                    }
+                    onChange={(event) =>
+                      handleInputChange(
+                        "isPresenter",
+                        event.target.checked,
+                      )
+                    }
+                  />
+
+                  <span>
+                    This is a presenter
+                    session
+                  </span>
+                </label>
+              </div>
+
+              {form.isPresenter && (
+                <div className="admin-form-group admin-form-full">
+                  <label htmlFor="presenter-name">
+                    Presenter Name
+                  </label>
+
+                  <input
+                    id="presenter-name"
+                    type="text"
+                    placeholder="Presenter's full name"
+                    value={
+                      form.presenterName
+                    }
+                    onChange={(event) =>
+                      handleInputChange(
+                        "presenterName",
+                        event.target.value,
+                      )
+                    }
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <label className="admin-checkbox">
@@ -412,7 +699,8 @@ function ScheduleManager() {
               />
 
               <span>
-                Publish this program immediately
+                Publish this program
+                immediately
               </span>
             </label>
 
@@ -481,17 +769,25 @@ function ScheduleManager() {
             <p>Loading schedule...</p>
           ) : programs.length === 0 ? (
             <p>
-              No schedule programs have been added yet.
+              No schedule programs have
+              been added yet.
             </p>
           ) : (
             <div className="admin-schedule-list">
               {programs.map((program) => (
                 <article
                   key={program.id}
-                  className="admin-schedule-card"
+                  className={`admin-schedule-card schedule-status-${program.status}`}
                 >
                   <div className="admin-schedule-card-time">
-                    {program.time}
+                    <strong>
+                      {program.time}
+                    </strong>
+
+                    <small>
+                      Segment{" "}
+                      {program.segment}
+                    </small>
                   </div>
 
                   <div className="admin-schedule-card-content">
@@ -499,6 +795,17 @@ function ScheduleManager() {
                       <span className="admin-program-type">
                         {program.type}
                       </span>
+
+                      <span className="schedule-segment-badge">
+                        Segment{" "}
+                        {program.segment}
+                      </span>
+
+                      {program.isPresenter && (
+                        <span className="schedule-presenter-badge">
+                          Presenter
+                        </span>
+                      )}
 
                       <span
                         className={
@@ -513,15 +820,33 @@ function ScheduleManager() {
                       </span>
                     </div>
 
-                    <h3>{program.title}</h3>
+                    <h3>
+                      {program.title}
+                    </h3>
+
+                    {program.presenterName && (
+                      <p>
+                        <strong>
+                          Presenter:
+                        </strong>{" "}
+                        {
+                          program.presenterName
+                        }
+                      </p>
+                    )}
 
                     {program.description && (
-                      <p>{program.description}</p>
+                      <p>
+                        {
+                          program.description
+                        }
+                      </p>
                     )}
 
                     {program.location && (
                       <small>
-                        Location: {program.location}
+                        Venue:{" "}
+                        {program.location}
                       </small>
                     )}
 
@@ -530,7 +855,9 @@ function ScheduleManager() {
                         type="button"
                         className="admin-secondary-button"
                         onClick={() =>
-                          handleEdit(program)
+                          handleEdit(
+                            program,
+                          )
                         }
                       >
                         Edit
@@ -540,7 +867,48 @@ function ScheduleManager() {
                         type="button"
                         className="admin-secondary-button"
                         onClick={() =>
-                          handlePublishToggle(program)
+                          handleStatusChange(
+                            program,
+                            "upcoming",
+                          )
+                        }
+                      >
+                        Upcoming
+                      </button>
+
+                      <button
+                        type="button"
+                        className="admin-secondary-button"
+                        onClick={() =>
+                          handleStatusChange(
+                            program,
+                            "active",
+                          )
+                        }
+                      >
+                        Live
+                      </button>
+
+                      <button
+                        type="button"
+                        className="admin-secondary-button"
+                        onClick={() =>
+                          handleStatusChange(
+                            program,
+                            "completed",
+                          )
+                        }
+                      >
+                        Completed
+                      </button>
+
+                      <button
+                        type="button"
+                        className="admin-secondary-button"
+                        onClick={() =>
+                          handlePublishToggle(
+                            program,
+                          )
                         }
                       >
                         {program.published
@@ -552,7 +920,9 @@ function ScheduleManager() {
                         type="button"
                         className="admin-danger-button"
                         onClick={() =>
-                          handleDelete(program.id)
+                          handleDelete(
+                            program.id,
+                          )
                         }
                       >
                         Delete
