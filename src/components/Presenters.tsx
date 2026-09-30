@@ -246,11 +246,7 @@ function Presenters() {
             </div>
           )}
 
-          {presenter.biography && (
-            <p className="presenter-biography">
-              {presenter.biography}
-            </p>
-          )}
+    
 
           <div className="presenter-card-actions">
             <button

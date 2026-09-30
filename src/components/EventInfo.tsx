@@ -8,6 +8,7 @@ import {
 
 import { db } from "../services/firebase";
 import type { EventInfo as EventInfoType } from "../types/event";
+import SponsorLogos from "./SponsorLogos";
 
 interface Countdown {
   days: number;
@@ -393,9 +394,8 @@ function EventInfo() {
       >
         <div className="event-hero-inner">
           <p className="event-hero-eyebrow">
-            {event.university ||
-              "Divine Word University"}
-          </p>
+  DIVINE WORD UNIVERSITY
+</p>
 
           <h1>
             {event.title ||
@@ -480,6 +480,7 @@ function EventInfo() {
                             2,
                             "0",
                           )}
+                        <SponsorLogos mode="gold" />
                         </strong>
                         <span>Hours</span>
                       </div>
