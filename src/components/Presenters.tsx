@@ -46,12 +46,15 @@ function Presenters() {
         const loadedPresenters: Presenter[] =
           snapshot.docs
             .map((presenterDoc) => {
-              const data = presenterDoc.data();
+              const data =
+                presenterDoc.data();
 
               const speakerType: SpeakerType =
                 data.speakerType === "keynote"
                   ? "keynote"
-                  : "presenter";
+                  : data.speakerType === "guest"
+                    ? "guest"
+                    : "presenter";
 
               const screenshots: PresenterScreenshot[] =
                 Array.isArray(data.screenshots)
@@ -144,7 +147,8 @@ function Presenters() {
     const previousOverflow =
       document.body.style.overflow;
 
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow =
+      "hidden";
 
     const handleKeyDown = (
       event: KeyboardEvent,
@@ -170,26 +174,88 @@ function Presenters() {
     };
   }, [selectedPresenter]);
 
-  const keynoteSpeakers = presenters.filter(
-    (presenter) =>
-      presenter.speakerType === "keynote",
-  );
+  const keynoteSpeakers =
+    presenters.filter(
+      (presenter) =>
+        presenter.speakerType ===
+        "keynote",
+    );
 
-  const symposiumPresenters = presenters.filter(
-    (presenter) =>
-      presenter.speakerType === "presenter",
-  );
+  const guestSpeakers =
+    presenters.filter(
+      (presenter) =>
+        presenter.speakerType ===
+        "guest",
+    );
+
+  const symposiumPresenters =
+    presenters.filter(
+      (presenter) =>
+        presenter.speakerType ===
+        "presenter",
+    );
+
+  const getSpeakerLabel = (
+    presenter: Presenter,
+  ) => {
+    if (
+      presenter.speakerType ===
+      "keynote"
+    ) {
+      return "Keynote Speaker";
+    }
+
+    if (
+      presenter.speakerType ===
+      "guest"
+    ) {
+      return "Guest Speaker";
+    }
+
+    return (
+      presenter.category ||
+      "Presenter"
+    );
+  };
+
+  const getPresentationLabel = (
+    presenter: Presenter,
+  ) => {
+    if (
+      presenter.speakerType ===
+      "keynote"
+    ) {
+      return "Keynote Presentation";
+    }
+
+    if (
+      presenter.speakerType ===
+      "guest"
+    ) {
+      return "Guest Presentation";
+    }
+
+    return "Project / Presentation";
+  };
 
   const renderPresenterCard = (
     presenter: Presenter,
   ) => {
     const isKeynote =
-      presenter.speakerType === "keynote";
+      presenter.speakerType ===
+      "keynote";
+
+    const isGuest =
+      presenter.speakerType ===
+      "guest";
+
+    const isFeaturedSpeaker =
+      isKeynote || isGuest;
 
     return (
       <article
         className={`presenter-card ${
-          isKeynote
+          isFeaturedSpeaker
             ? "presenter-card-keynote"
             : "presenter-card-project"
         }`}
@@ -212,9 +278,9 @@ function Presenters() {
               </span>
 
               <span>
-                {isKeynote
-                  ? "Keynote Speaker"
-                  : "Presenter"}
+                {getSpeakerLabel(
+                  presenter,
+                )}
               </span>
             </div>
           )}
@@ -224,10 +290,9 @@ function Presenters() {
           <div className="presenter-card-main">
             <div className="presenter-card-labels">
               <span className="presenter-category">
-                {isKeynote
-                  ? "Keynote Speaker"
-                  : presenter.category ||
-                    "Presenter"}
+                {getSpeakerLabel(
+                  presenter,
+                )}
               </span>
             </div>
 
@@ -245,9 +310,9 @@ function Presenters() {
               {presenter.topic && (
                 <div className="presenter-topic-block">
                   <span className="presenter-topic-label">
-                    {isKeynote
-                      ? "Keynote Presentation"
-                      : "Project / Presentation"}
+                    {getPresentationLabel(
+                      presenter,
+                    )}
                   </span>
 
                   <p className="presenter-topic">
@@ -259,7 +324,7 @@ function Presenters() {
           </div>
 
           <div className="presenter-card-actions">
-            {!isKeynote && (
+            {!isFeaturedSpeaker && (
               <button
                 type="button"
                 className="button button-primary presenter-view-button"
@@ -275,13 +340,16 @@ function Presenters() {
 
             {presenter.linkedinUrl && (
               <a
-                href={presenter.linkedinUrl}
+                href={
+                  presenter.linkedinUrl
+                }
                 className="presenter-linkedin"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`View ${presenter.name}'s LinkedIn profile`}
               >
                 LinkedIn
+
                 <span
                   aria-hidden="true"
                   className="presenter-link-arrow"
@@ -302,7 +370,8 @@ function Presenters() {
         <section className="content-section presenters-section">
           <div className="content-container">
             <div className="schedule-message">
-              Loading symposium presenters...
+              Loading symposium
+              presenters...
             </div>
           </div>
         </section>
@@ -326,34 +395,75 @@ function Presenters() {
 
       {!loading &&
         !error &&
-        keynoteSpeakers.length > 0 && (
+        (keynoteSpeakers.length > 0 ||
+          guestSpeakers.length >
+            0) && (
           <section className="content-section keynote-section">
             <div className="content-container">
               <div className="section-heading-row">
                 <div>
                   <p className="section-label">
-                    KEYNOTE SPEAKERS
+                    KEYNOTE &amp; GUEST
+                    SPEAKERS
                   </p>
 
                   <h2>
-                    Symposium Keynote Speakers
+                    Symposium Speakers
                   </h2>
 
                   <p>
-                    Meet the invited keynote
-                    speakers sharing expertise,
-                    research, and industry
-                    perspectives at the MCS
-                    Symposium 2026.
+                    Meet the invited
+                    keynote and guest
+                    speakers sharing
+                    expertise, research,
+                    and industry
+                    perspectives at the
+                    MCS Symposium 2026.
                   </p>
                 </div>
               </div>
 
-              <div className="presenter-grid keynote-grid">
-                {keynoteSpeakers.map(
-                  renderPresenterCard,
-                )}
-              </div>
+              {keynoteSpeakers.length >
+                0 && (
+                <div className="speaker-group">
+                  <div className="speaker-group-heading">
+                    <p className="section-label">
+                      KEYNOTE SPEAKERS
+                    </p>
+
+                    <h3>
+                      Keynote Speakers
+                    </h3>
+                  </div>
+
+                  <div className="presenter-grid keynote-grid">
+                    {keynoteSpeakers.map(
+                      renderPresenterCard,
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {guestSpeakers.length >
+                0 && (
+                <div className="guest-speaker-group">
+                  <div className="guest-speaker-heading">
+                    <p className="section-label">
+                      GUEST SPEAKERS
+                    </p>
+
+                    <h3>
+                      Guest Speakers
+                    </h3>
+                  </div>
+
+                  <div className="presenter-grid keynote-grid">
+                    {guestSpeakers.map(
+                      renderPresenterCard,
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -371,14 +481,16 @@ function Presenters() {
                 </p>
 
                 <h2>
-                  Meet the Symposium Presenters
+                  Meet the Symposium
+                  Presenters
                 </h2>
 
                 <p>
                   Discover the academics,
-                  researchers, students, industry
-                  professionals, and invited
-                  guests contributing to the MCS
+                  researchers, students,
+                  industry professionals,
+                  and invited guests
+                  contributing to the MCS
                   Symposium 2026.
                 </p>
               </div>
@@ -387,9 +499,10 @@ function Presenters() {
             {symposiumPresenters.length ===
               0 && (
               <div className="schedule-message">
-                Presenter information will be
-                published here once presenters
-                are confirmed.
+                Presenter information
+                will be published here
+                once presenters are
+                confirmed.
               </div>
             )}
 
@@ -414,7 +527,9 @@ function Presenters() {
               event.target ===
               event.currentTarget
             ) {
-              setSelectedPresenter(null);
+              setSelectedPresenter(
+                null,
+              );
             }
           }}
         >
@@ -429,7 +544,9 @@ function Presenters() {
               className="presenter-modal-close"
               aria-label="Close presenter details"
               onClick={() =>
-                setSelectedPresenter(null)
+                setSelectedPresenter(
+                  null,
+                )
               }
             >
               ×
@@ -461,20 +578,22 @@ function Presenters() {
 
                 <div className="presenter-modal-person">
                   <span className="presenter-category">
-                    {selectedPresenter.speakerType ===
-                    "keynote"
-                      ? "Keynote Speaker"
-                      : selectedPresenter.category ||
-                        "Presenter"}
+                    {getSpeakerLabel(
+                      selectedPresenter,
+                    )}
                   </span>
 
                   <h2 id="presenter-modal-title">
-                    {selectedPresenter.name}
+                    {
+                      selectedPresenter.name
+                    }
                   </h2>
 
                   {selectedPresenter.role && (
                     <p className="presenter-role">
-                      {selectedPresenter.role}
+                      {
+                        selectedPresenter.role
+                      }
                     </p>
                   )}
                 </div>
@@ -485,14 +604,15 @@ function Presenters() {
               {selectedPresenter.topic && (
                 <section className="presenter-modal-section">
                   <p className="presenter-topic-label">
-                    {selectedPresenter.speakerType ===
-                    "keynote"
-                      ? "Keynote Presentation"
-                      : "Project / Presentation"}
+                    {getPresentationLabel(
+                      selectedPresenter,
+                    )}
                   </p>
 
                   <h3>
-                    {selectedPresenter.topic}
+                    {
+                      selectedPresenter.topic
+                    }
                   </h3>
                 </section>
               )}
@@ -501,9 +621,9 @@ function Presenters() {
                 <section className="presenter-modal-section">
                   <h3>
                     {selectedPresenter.speakerType ===
-                    "keynote"
-                      ? "Presentation Details"
-                      : "Project Details"}
+                    "presenter"
+                      ? "Project Details"
+                      : "Presentation Details"}
                   </h3>
 
                   <p className="presenter-modal-description">
@@ -518,7 +638,9 @@ function Presenters() {
                 <section className="presenter-modal-section">
                   <h3>
                     About{" "}
-                    {selectedPresenter.name}
+                    {
+                      selectedPresenter.name
+                    }
                   </h3>
 
                   <p className="presenter-modal-description">
@@ -534,28 +656,35 @@ function Presenters() {
                 <section className="presenter-modal-section">
                   <h3>
                     {selectedPresenter.speakerType ===
-                    "keynote"
-                      ? "Presentation Gallery"
-                      : "Project Screenshots"}
+                    "presenter"
+                      ? "Project Screenshots"
+                      : "Presentation Gallery"}
                   </h3>
 
                   <div className="presenter-screenshot-grid">
                     {selectedPresenter.screenshots.map(
-                      (screenshot, index) => (
+                      (
+                        screenshot,
+                        index,
+                      ) => (
                         <a
                           key={`${screenshot.path}-${index}`}
-                          href={screenshot.url}
+                          href={
+                            screenshot.url
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="presenter-screenshot-link"
                         >
                           <img
-                            src={screenshot.url}
+                            src={
+                              screenshot.url
+                            }
                             alt={`${selectedPresenter.name} ${
                               selectedPresenter.speakerType ===
-                              "keynote"
-                                ? "presentation"
-                                : "project"
+                              "presenter"
+                                ? "project"
+                                : "presentation"
                             } screenshot ${index + 1}`}
                             loading="lazy"
                           />
@@ -577,9 +706,9 @@ function Presenters() {
                     rel="noopener noreferrer"
                   >
                     {selectedPresenter.speakerType ===
-                    "keynote"
-                      ? "Open Presentation Link"
-                      : "Visit Project"}
+                    "presenter"
+                      ? "Visit Project"
+                      : "Open Presentation Link"}
                   </a>
                 )}
 

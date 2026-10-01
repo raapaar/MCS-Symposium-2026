@@ -1,4 +1,9 @@
-import { lazy, Suspense } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+} from "react";
+
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
 
@@ -45,6 +50,57 @@ const StaffManager = lazy(
 function App() {
   const currentPath =
     window.location.pathname;
+
+  useEffect(() => {
+    if (
+      window.location.pathname.startsWith(
+        "/admin",
+      )
+    ) {
+      return;
+    }
+
+    const storageKey =
+      "mcs-symposium-scroll-position";
+
+    const savedPosition =
+      sessionStorage.getItem(storageKey);
+
+    if (savedPosition !== null) {
+      const position =
+        Number(savedPosition);
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: Number.isFinite(position)
+              ? position
+              : 0,
+            behavior: "auto",
+          });
+        });
+      });
+    }
+
+    const saveScrollPosition = () => {
+      sessionStorage.setItem(
+        storageKey,
+        String(window.scrollY),
+      );
+    };
+
+    window.addEventListener(
+      "beforeunload",
+      saveScrollPosition,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "beforeunload",
+        saveScrollPosition,
+      );
+    };
+  }, []);
 
   const renderAdminPage = () => {
     if (

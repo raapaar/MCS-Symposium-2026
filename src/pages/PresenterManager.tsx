@@ -13,7 +13,7 @@ import {
 import { db } from "../services/firebase";
 import storageProvider from "../services/storageProvider";
 
-type SpeakerType = "presenter" | "keynote";
+type SpeakerType = "presenter" | "keynote" | "guest";
 
 interface PresenterScreenshot {
   url: string;
@@ -108,7 +108,9 @@ function PresenterManager() {
             speakerType:
               data.speakerType === "keynote"
                 ? "keynote"
-                : "presenter",
+                : data.speakerType === "guest"
+                  ? "guest"
+                  : "presenter",
             topic: data.topic ?? "",
             biography: data.biography ?? "",
             projectDescription: data.projectDescription ?? "",
@@ -679,6 +681,7 @@ function PresenterManager() {
                 >
                   <option value="presenter">Presenter</option>
                   <option value="keynote">Keynote Speaker</option>
+                  <option value="guest">Guest Speaker</option>
                 </select>
               </div>
 
@@ -1034,7 +1037,9 @@ function PresenterManager() {
                       <span className="admin-program-type">
                         {presenter.speakerType === "keynote"
                           ? "Keynote Speaker"
-                          : presenter.category}
+                          : presenter.speakerType === "guest"
+                            ? "Guest Speaker"
+                            : presenter.category}
                       </span>
 
                       <span

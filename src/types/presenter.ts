@@ -1,6 +1,7 @@
 export type SpeakerType =
   | "presenter"
-  | "keynote";
+  | "keynote"
+  | "guest";
 
 export interface PresenterScreenshot {
   url: string;

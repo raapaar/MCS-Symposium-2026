@@ -637,7 +637,10 @@ function EventInfo() {
 
       {/* WhatsApp CTA */}
       {whatsappUrl && (
-        <section className="event-whatsapp-cta">
+         <section
+    id="whatsapp-contact"
+    className="event-whatsapp-cta"
+  >
           <div className="content-container event-whatsapp-inner">
             <div>
               <p className="section-label">

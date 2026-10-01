@@ -70,7 +70,7 @@ function Header() {
             href="#symposium"
             onClick={closeMenu}
           >
-            Symposium
+            About
           </a>
 
           <a
@@ -88,13 +88,6 @@ function Header() {
           </a>
 
           <a
-            href="#staff"
-            onClick={closeMenu}
-          >
-            Staff
-          </a>
-
-          <a
             href="#schedule"
             onClick={closeMenu}
           >
@@ -109,7 +102,7 @@ function Header() {
           </a>
 
           <a
-            href="#contact"
+            href="#whatsapp-contact"
             onClick={closeMenu}
           >
             Contact
