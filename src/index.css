@@ -10418,3 +10418,1022 @@ body {
 }
 
 
+/* =========================================================
+   PARTNERS FEATURE LAYOUT
+   Independent from old sponsor-card CSS
+   ========================================================= */
+
+.partner-feature-section {
+  overflow: hidden;
+}
+
+.partner-feature-list {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  max-width: 1120px;
+
+  margin: 48px auto 0;
+
+  gap: 34px;
+}
+
+
+/* =========================================================
+   FEATURE ROW
+   ========================================================= */
+
+.partner-feature-card {
+  display: grid;
+
+  grid-template-columns:
+    minmax(320px, 0.92fr)
+    minmax(0, 1.08fr);
+
+  width: 100%;
+  min-height: 350px;
+
+  overflow: hidden;
+
+  background: #ffffff;
+
+  border:
+    1px solid
+    rgba(17, 24, 39, 0.08);
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 14px 40px
+    rgba(17, 24, 39, 0.07);
+}
+
+
+/* =========================================================
+   LOGO / IMAGE SIDE
+   ========================================================= */
+
+.partner-feature-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 0;
+  min-height: 350px;
+
+  padding: 44px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #f5f5f6 0%,
+      #ffffff 100%
+    );
+
+  border-right:
+    1px solid
+    rgba(17, 24, 39, 0.07);
+}
+
+
+.partner-feature-image img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  max-width: 360px;
+  max-height: 230px;
+
+  object-fit: contain;
+}
+
+
+.partner-feature-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 190px;
+  height: 190px;
+
+  color: #ffffff;
+  background: #800020;
+
+  border-radius: 50%;
+
+  font-size: 3rem;
+  font-weight: 850;
+}
+
+
+/* =========================================================
+   CONTENT SIDE
+   ========================================================= */
+
+.partner-feature-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  min-width: 0;
+
+  padding: 48px 54px;
+}
+
+
+.partner-feature-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  margin-bottom: 15px;
+
+  gap: 8px;
+}
+
+
+.partner-feature-tier,
+.partner-feature-category {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 29px;
+
+  padding: 6px 11px;
+
+  border-radius: 999px;
+
+  font-size: 0.67rem;
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+
+/* Gold */
+
+.partner-feature-tier-gold {
+  color: #725500;
+  background: #fff5cf;
+
+  border:
+    1px solid
+    rgba(190, 145, 0, 0.2);
+}
+
+
+/* Silver */
+
+.partner-feature-tier-silver {
+  color: #525760;
+  background: #eff0f2;
+
+  border:
+    1px solid
+    rgba(80, 85, 95, 0.12);
+}
+
+
+/* Bronze */
+
+.partner-feature-tier-bronze {
+  color: #77441f;
+  background: #f5e4d5;
+
+  border:
+    1px solid
+    rgba(119, 68, 31, 0.12);
+}
+
+
+/* Partner */
+
+.partner-feature-tier-partner {
+  color: #800020;
+  background: rgba(
+    128,
+    0,
+    32,
+    0.07
+  );
+
+  border:
+    1px solid
+    rgba(
+      128,
+      0,
+      32,
+      0.1
+    );
+}
+
+
+.partner-feature-category {
+  color: #17613a;
+  background: #edf8f1;
+
+  border:
+    1px solid
+    rgba(23, 97, 58, 0.1);
+}
+
+
+/* Sponsor name */
+
+.partner-feature-content h3 {
+  margin: 0 0 14px;
+
+  color: #17181c;
+
+  font-size:
+    clamp(
+      1.9rem,
+      3vw,
+      2.65rem
+    );
+
+  font-weight: 850;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+
+/* Description */
+
+.partner-feature-description {
+  max-width: 620px;
+
+  margin: 0;
+
+  color: #62666f;
+
+  font-size: 0.96rem;
+  line-height: 1.75;
+}
+
+
+/* Website button */
+
+.partner-feature-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+
+  margin-top: 24px;
+
+  padding: 11px 17px;
+
+  gap: 7px;
+
+  color: #ffffff;
+  background: #800020;
+
+  border-radius: 8px;
+
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+
+.partner-feature-link:hover {
+  color: #ffffff;
+  background: #650019;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   GOLD SPONSOR EMPHASIS
+   ========================================================= */
+
+.partner-feature-gold {
+  border-color:
+    rgba(
+      190,
+      145,
+      0,
+      0.22
+    );
+}
+
+
+.partner-feature-gold
+.partner-feature-image {
+  background:
+    linear-gradient(
+      145deg,
+      #faf8ef,
+      #ffffff
+    );
+}
+
+
+/* =========================================================
+   ALTERNATING LAYOUT
+   ========================================================= */
+
+.partner-feature-reverse
+.partner-feature-image {
+  grid-column: 2;
+  grid-row: 1;
+
+  border-right: 0;
+
+  border-left:
+    1px solid
+    rgba(17, 24, 39, 0.07);
+}
+
+
+.partner-feature-reverse
+.partner-feature-content {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+  .partner-feature-list {
+    margin-top: 38px;
+  }
+
+
+  .partner-feature-card {
+    grid-template-columns:
+      minmax(240px, 0.82fr)
+      minmax(0, 1.18fr);
+
+    min-height: 290px;
+  }
+
+
+  .partner-feature-image {
+    min-height: 290px;
+
+    padding: 32px;
+  }
+
+
+  .partner-feature-image img {
+    max-width: 270px;
+    max-height: 185px;
+  }
+
+
+  .partner-feature-content {
+    padding: 36px;
+  }
+
+
+  .partner-feature-content h3 {
+    font-size: 1.8rem;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+  .partner-feature-list {
+    margin-top: 30px;
+
+    gap: 22px;
+  }
+
+
+  .partner-feature-card,
+  .partner-feature-reverse {
+    display: flex;
+    flex-direction: column;
+
+    min-height: 0;
+
+    border-radius: 16px;
+  }
+
+
+  .partner-feature-image,
+  .partner-feature-reverse
+  .partner-feature-image {
+    order: 1;
+
+    width: 100%;
+    min-height: 220px;
+
+    padding: 28px 24px;
+
+    border-right: 0;
+    border-left: 0;
+
+    border-bottom:
+      1px solid
+      rgba(17, 24, 39, 0.07);
+  }
+
+
+  .partner-feature-image img {
+    max-width: 270px;
+    max-height: 160px;
+  }
+
+
+  .partner-feature-content,
+  .partner-feature-reverse
+  .partner-feature-content {
+    order: 2;
+
+    width: 100%;
+
+    padding: 28px 24px 30px;
+  }
+
+
+  .partner-feature-content h3 {
+    font-size: 1.6rem;
+  }
+
+
+  .partner-feature-description {
+    font-size: 0.89rem;
+    line-height: 1.65;
+  }
+
+
+  .partner-feature-link {
+    margin-top: 20px;
+  }
+
+}
+
+/* =========================================================
+   COMPACT TABULAR SCHEDULE
+   Vertical accordion + compact table
+   ========================================================= */
+
+.schedule-compact-section {
+  overflow: hidden;
+}
+
+
+/* Accordion */
+
+.schedule-compact-accordion {
+  width: 100%;
+  max-width: 1100px;
+
+  margin: 30px auto 0;
+
+  border-top:
+    1px solid #dfe0e3;
+}
+
+
+.schedule-compact-segment {
+  width: 100%;
+
+  border-bottom:
+    1px solid #dfe0e3;
+}
+
+
+/* Segment button */
+
+.schedule-compact-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  min-height: 66px;
+
+  padding: 12px 4px;
+
+  gap: 24px;
+
+  cursor: pointer;
+
+  color: #22242a;
+  background: transparent;
+
+  border: 0;
+
+  font: inherit;
+  text-align: left;
+
+  transition:
+    color 0.18s ease,
+    background 0.18s ease;
+}
+
+
+.schedule-compact-trigger:hover {
+  color: #800020;
+}
+
+
+.schedule-compact-segment.is-open
+.schedule-compact-trigger {
+  color: #800020;
+}
+
+
+/* Left side */
+
+.schedule-compact-trigger-main {
+  display: flex;
+  align-items: center;
+
+  min-width: 0;
+
+  gap: 13px;
+}
+
+
+.schedule-compact-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 28px;
+
+  width: 28px;
+  height: 28px;
+
+  color: #800020;
+  background: rgba(
+    128,
+    0,
+    32,
+    0.06
+  );
+
+  border-radius: 50%;
+
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+
+.schedule-compact-trigger-text {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  gap: 2px;
+}
+
+
+.schedule-compact-trigger-text strong {
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+
+.schedule-compact-trigger-text span {
+  overflow: hidden;
+
+  color: #737780;
+
+  font-size: 0.76rem;
+  line-height: 1.35;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* Right side */
+
+.schedule-compact-trigger-side {
+  display: flex;
+  align-items: center;
+
+  flex: 0 0 auto;
+
+  gap: 8px;
+}
+
+
+.schedule-compact-count {
+  color: #8a8d94;
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+
+.schedule-compact-live-badge {
+  display: inline-flex;
+
+  padding: 4px 8px;
+
+  color: #ffffff;
+  background: #800020;
+
+  border-radius: 999px;
+
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+
+.schedule-compact-completed-badge {
+  color: #777b83;
+
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+
+/* Live segment */
+
+.schedule-compact-segment-active
+.schedule-compact-trigger {
+  position: relative;
+}
+
+
+.schedule-compact-segment-active
+.schedule-compact-trigger::before {
+  content: "";
+
+  position: absolute;
+
+  top: 14px;
+  bottom: 14px;
+  left: -12px;
+
+  width: 3px;
+
+  background: #800020;
+
+  border-radius: 5px;
+}
+
+
+/* Completed segment */
+
+.schedule-compact-segment-completed
+.schedule-compact-trigger {
+  opacity: 0.62;
+}
+
+
+/* Expanded area */
+
+.schedule-compact-content {
+  padding: 0 0 16px 41px;
+}
+
+
+.schedule-compact-empty {
+  padding: 15px 12px;
+
+  color: #777b83;
+
+  font-size: 0.8rem;
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.schedule-compact-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+
+  border:
+    1px solid #e0e1e4;
+
+  border-radius: 9px;
+}
+
+
+.schedule-compact-table {
+  width: 100%;
+
+  border-collapse: collapse;
+
+  table-layout: fixed;
+
+  background: #ffffff;
+}
+
+
+.schedule-compact-table th {
+  padding: 8px 10px;
+
+  color: #666a72;
+  background: #f5f5f6;
+
+  border-bottom:
+    1px solid #dedfe2;
+
+  font-size: 0.63rem;
+  font-weight: 850;
+  line-height: 1.25;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+
+.schedule-compact-table td {
+  padding: 8px 10px;
+
+  border-bottom:
+    1px solid #ececef;
+
+  vertical-align: top;
+
+  font-size: 0.77rem;
+  line-height: 1.35;
+}
+
+
+.schedule-compact-table
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+
+/* Columns */
+
+.schedule-col-time {
+  width: 115px;
+}
+
+
+.schedule-col-venue {
+  width: 90px;
+}
+
+
+.schedule-col-status {
+  width: 75px;
+}
+
+
+.schedule-compact-time {
+  color: #25272c;
+
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+
+.schedule-compact-venue {
+  color: #800020;
+
+  font-size: 0.69rem !important;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+
+.schedule-compact-program {
+  min-width: 0;
+}
+
+
+.schedule-compact-program-title {
+  color: #26282d;
+
+  font-weight: 750;
+}
+
+
+.schedule-compact-presenter {
+  margin-top: 2px;
+
+  color: #666a73;
+
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+
+.schedule-compact-type {
+  margin-top: 2px;
+
+  color: #7b7e85;
+
+  font-size: 0.67rem;
+}
+
+
+.schedule-compact-status {
+  text-align: right;
+}
+
+
+/* Live program */
+
+.schedule-compact-row-active {
+  background:
+    rgba(
+      128,
+      0,
+      32,
+      0.035
+    );
+}
+
+
+.schedule-compact-row-active
+.schedule-compact-program-title {
+  color: #800020;
+}
+
+
+.schedule-table-live {
+  display: inline-flex;
+
+  padding: 3px 7px;
+
+  color: #ffffff;
+  background: #800020;
+
+  border-radius: 999px;
+
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+
+/* Completed program */
+
+.schedule-compact-row-completed {
+  opacity: 0.5;
+}
+
+
+.schedule-table-completed {
+  color: #777b83;
+
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+  .schedule-compact-accordion {
+    margin-top: 22px;
+  }
+
+
+  .schedule-compact-trigger {
+    min-height: 58px;
+
+    padding: 9px 0;
+
+    gap: 10px;
+  }
+
+
+  .schedule-compact-chevron {
+    flex-basis: 25px;
+
+    width: 25px;
+    height: 25px;
+  }
+
+
+  .schedule-compact-trigger-text strong {
+    font-size: 0.82rem;
+  }
+
+
+  .schedule-compact-trigger-text span {
+    max-width: 210px;
+
+    font-size: 0.66rem;
+  }
+
+
+  .schedule-compact-count {
+    display: none;
+  }
+
+
+  .schedule-compact-completed-badge {
+    display: none;
+  }
+
+
+  .schedule-compact-content {
+    padding:
+      0 0 12px 0;
+  }
+
+
+  /*
+   * Keep it tabular on phones.
+   * Description column receives most
+   * of the available width.
+   */
+
+  .schedule-compact-table {
+    min-width: 520px;
+  }
+
+
+  .schedule-col-time {
+    width: 92px;
+  }
+
+
+  .schedule-col-venue {
+    width: 65px;
+  }
+
+
+  .schedule-col-status {
+    width: 60px;
+  }
+
+
+  .schedule-compact-table th {
+    padding: 7px 8px;
+
+    font-size: 0.57rem;
+  }
+
+
+  .schedule-compact-table td {
+    padding: 7px 8px;
+
+    font-size: 0.7rem;
+  }
+
+
+  .schedule-compact-venue {
+    font-size:
+      0.62rem !important;
+  }
+
+
+  .schedule-compact-program-title {
+    line-height: 1.3;
+  }
+
+
+  .schedule-compact-presenter {
+    font-size: 0.64rem;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 390px) {
+
+  .schedule-compact-trigger-text span {
+    max-width: 165px;
+  }
+
+
+  .schedule-compact-live-badge {
+    padding: 3px 6px;
+
+    font-size: 0.52rem;
+  }
+
+}
+
+
+

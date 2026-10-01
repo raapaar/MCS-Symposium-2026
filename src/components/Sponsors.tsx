@@ -75,7 +75,9 @@ function Sponsors() {
         );
 
         const snapshot =
-          await getDocs(sponsorsQuery);
+          await getDocs(
+            sponsorsQuery,
+          );
 
         const loadedSponsors: Sponsor[] =
           snapshot.docs.map(
@@ -84,28 +86,42 @@ function Sponsors() {
                 sponsorDocument.data();
 
               return {
-                id: sponsorDocument.id,
-                name: data.name ?? "",
+                id:
+                  sponsorDocument.id,
+
+                name:
+                  data.name ?? "",
+
                 description:
-                  data.description ?? "",
-                logo: data.logo ?? "",
+                  data.description ??
+                  "",
+
+                logo:
+                  data.logo ?? "",
+
                 logoPath:
                   data.logoPath ?? "",
+
                 website:
                   data.website ?? "",
+
                 category:
                   data.category ?? "",
+
                 tier:
                   getSponsorTier(
                     data.tier,
                   ),
+
                 order:
                   typeof data.order ===
                   "number"
                     ? data.order
                     : 0,
+
                 published:
-                  data.published === true,
+                  data.published ===
+                  true,
               };
             },
           );
@@ -115,7 +131,9 @@ function Sponsors() {
             a.order - b.order,
         );
 
-        setSponsors(loadedSponsors);
+        setSponsors(
+          loadedSponsors,
+        );
       } catch (err) {
         console.error(
           "Error loading sponsors:",
@@ -135,7 +153,7 @@ function Sponsors() {
 
   return (
     <section
-      className="sponsors-section"
+      className="sponsors-section partner-feature-section"
       id="sponsors"
     >
       <div className="section-container">
@@ -149,15 +167,18 @@ function Sponsors() {
           </h2>
 
           <p>
-            Organizations supporting the MCS
-            Symposium 2026 and the Mathematics
-            and Computing Science community.
+            Organizations supporting
+            the MCS Symposium 2026 and
+            the Mathematics and
+            Computing Science
+            community.
           </p>
         </div>
 
         {loading && (
           <p className="admin-message">
-            Loading sponsors and partners...
+            Loading sponsors and
+            partners...
           </p>
         )}
 
@@ -171,30 +192,40 @@ function Sponsors() {
           !error &&
           sponsors.length === 0 && (
             <p className="admin-message">
-              No sponsors or partners are
-              currently published.
+              No sponsors or partners
+              are currently published.
             </p>
           )}
 
         {!loading &&
           !error &&
           sponsors.length > 0 && (
-            <div className="sponsors-grid">
+            <div className="partner-feature-list">
               {sponsors.map(
-                (sponsor) => (
+                (
+                  sponsor,
+                  index,
+                ) => (
                   <article
-                    className={`sponsor-card sponsor-card-${sponsor.tier}`}
-                    key={sponsor.id}
+                    className={`partner-feature-card partner-feature-${sponsor.tier} ${
+                      index % 2 === 1
+                        ? "partner-feature-reverse"
+                        : ""
+                    }`}
+                    key={
+                      sponsor.id
+                    }
                   >
-                    <div className="sponsor-logo-wrapper">
+                    <div className="partner-feature-image">
                       {sponsor.logo ? (
                         <img
-                          src={sponsor.logo}
+                          src={
+                            sponsor.logo
+                          }
                           alt={`${sponsor.name} logo`}
-                          className="sponsor-logo"
                         />
                       ) : (
-                        <div className="sponsor-logo-placeholder">
+                        <div className="partner-feature-placeholder">
                           {sponsor.name
                             .charAt(0)
                             .toUpperCase()}
@@ -202,10 +233,10 @@ function Sponsors() {
                       )}
                     </div>
 
-                    <div className="sponsor-content">
-                      <div className="sponsor-meta">
+                    <div className="partner-feature-content">
+                      <div className="partner-feature-meta">
                         <span
-                          className={`sponsor-tier sponsor-tier-${sponsor.tier}`}
+                          className={`partner-feature-tier partner-feature-tier-${sponsor.tier}`}
                         >
                           {getSponsorTierLabel(
                             sponsor.tier,
@@ -213,18 +244,22 @@ function Sponsors() {
                         </span>
 
                         {sponsor.category && (
-                          <span className="sponsor-category">
-                            {sponsor.category}
+                          <span className="partner-feature-category">
+                            {
+                              sponsor.category
+                            }
                           </span>
                         )}
                       </div>
 
                       <h3>
-                        {sponsor.name}
+                        {
+                          sponsor.name
+                        }
                       </h3>
 
                       {sponsor.description && (
-                        <p>
+                        <p className="partner-feature-description">
                           {
                             sponsor.description
                           }
@@ -238,9 +273,14 @@ function Sponsors() {
                           }
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="sponsor-link"
+                          className="partner-feature-link"
                         >
-                          Visit Website ↗
+                          Visit Website
+                          <span
+                            aria-hidden="true"
+                          >
+                            ↗
+                          </span>
                         </a>
                       )}
                     </div>

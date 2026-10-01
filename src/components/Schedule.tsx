@@ -28,6 +28,10 @@ interface LoadedScheduleItem
   presenterName: string;
 }
 
+const segments: ScheduleSegment[] = [
+  1, 2, 3, 4,
+];
+
 const segmentInformation: Record<
   ScheduleSegment,
   {
@@ -81,8 +85,13 @@ function Schedule() {
     LoadedScheduleItem[]
   >([]);
 
+  /*
+   * null means every segment is collapsed.
+   */
   const [activeSegment, setActiveSegment] =
-    useState<ScheduleSegment>(1);
+    useState<ScheduleSegment | null>(
+      null,
+    );
 
   const [loading, setLoading] =
     useState(true);
@@ -187,64 +196,82 @@ function Schedule() {
     void loadPublishedPrograms();
   }, []);
 
-  const segmentPrograms =
-    useMemo(
-      () =>
-        programs.filter(
-          (program) =>
-            program.segment ===
-            activeSegment,
-        ),
-      [activeSegment, programs],
-    );
-
   /*
-   * Programs with the same time are
-   * grouped together. This keeps SPBA
-   * and E50 concurrent presentations
-   * visually connected without turning
-   * them into large cards.
+   * Pre-group each segment by time.
+   * Programs sharing the same time remain
+   * together for concurrent SPBA/E50 sessions.
    */
-  const groupedPrograms =
+  const groupedBySegment =
     useMemo(() => {
-      const groups: Array<{
-        time: string;
-        programs: LoadedScheduleItem[];
-      }> = [];
+      const result: Record<
+        ScheduleSegment,
+        Array<{
+          time: string;
+          programs: LoadedScheduleItem[];
+        }>
+      > = {
+        1: [],
+        2: [],
+        3: [],
+        4: [],
+      };
 
-      segmentPrograms.forEach(
-        (program) => {
-          const existing =
-            groups.find(
-              (group) =>
-                group.time ===
-                program.time,
+      segments.forEach(
+        (segment) => {
+          const segmentPrograms =
+            programs.filter(
+              (program) =>
+                program.segment ===
+                segment,
             );
 
-          if (existing) {
-            existing.programs.push(
-              program,
-            );
-          } else {
-            groups.push({
-              time: program.time,
-              programs: [program],
-            });
-          }
+          segmentPrograms.forEach(
+            (program) => {
+              const existing =
+                result[
+                  segment
+                ].find(
+                  (group) =>
+                    group.time ===
+                    program.time,
+                );
+
+              if (existing) {
+                existing.programs.push(
+                  program,
+                );
+              } else {
+                result[
+                  segment
+                ].push({
+                  time:
+                    program.time,
+                  programs: [
+                    program,
+                  ],
+                });
+              }
+            },
+          );
         },
       );
 
-      return groups;
-    }, [segmentPrograms]);
+      return result;
+    }, [programs]);
+
+  const getSegmentPrograms = (
+    segment: ScheduleSegment,
+  ) =>
+    programs.filter(
+      (program) =>
+        program.segment === segment,
+    );
 
   const getSegmentStatus = (
     segment: ScheduleSegment,
   ): ScheduleStatus => {
     const items =
-      programs.filter(
-        (program) =>
-          program.segment === segment,
-      );
+      getSegmentPrograms(segment);
 
     if (
       items.some(
@@ -269,28 +296,21 @@ function Schedule() {
     return "upcoming";
   };
 
-  const goToPreviousSegment = () => {
-    if (activeSegment > 1) {
-      setActiveSegment(
-        (activeSegment -
-          1) as ScheduleSegment,
-      );
-    }
-  };
-
-  const goToNextSegment = () => {
-    if (activeSegment < 4) {
-      setActiveSegment(
-        (activeSegment +
-          1) as ScheduleSegment,
-      );
-    }
+  const toggleSegment = (
+    segment: ScheduleSegment,
+  ) => {
+    setActiveSegment(
+      (current) =>
+        current === segment
+          ? null
+          : segment,
+    );
   };
 
   return (
     <section
       id="schedule"
-      className="content-section schedule-section schedule-list-section"
+      className="content-section schedule-section schedule-compact-section"
     >
       <div className="content-container">
         <div className="section-heading-row">
@@ -304,12 +324,11 @@ function Schedule() {
             </h2>
 
             <p>
-              Browse the symposium
-              program by segment.
-              Presentations happening
-              simultaneously at SPBA and
-              E50 are grouped under the
-              same time.
+              Select a program segment
+              to view its schedule.
+              Concurrent SPBA and E50
+              presentations are grouped
+              by time.
             </p>
           </div>
         </div>
@@ -341,250 +360,225 @@ function Schedule() {
         {!loading &&
           !error &&
           programs.length > 0 && (
-            <>
-              <div
-                className="schedule-segment-tabs"
-                role="tablist"
-                aria-label="Symposium program segments"
-              >
-                {(
-                  [
-                    1,
-                    2,
-                    3,
-                    4,
-                  ] as ScheduleSegment[]
-                ).map((segment) => {
+            <div className="schedule-compact-accordion">
+              {segments.map(
+                (segment) => {
+                  const isOpen =
+                    activeSegment ===
+                    segment;
+
                   const status =
                     getSegmentStatus(
                       segment,
                     );
 
+                  const segmentPrograms =
+                    getSegmentPrograms(
+                      segment,
+                    );
+
+                  const groups =
+                    groupedBySegment[
+                      segment
+                    ];
+
                   return (
-                    <button
+                    <div
                       key={segment}
-                      type="button"
-                      role="tab"
-                      aria-selected={
-                        activeSegment ===
-                        segment
-                      }
-                      className={`schedule-segment-tab ${
-                        activeSegment ===
-                        segment
-                          ? "is-active"
+                      className={`schedule-compact-segment schedule-compact-segment-${status} ${
+                        isOpen
+                          ? "is-open"
                           : ""
-                      } schedule-segment-status-${status}`}
-                      onClick={() =>
-                        setActiveSegment(
-                          segment,
-                        )
-                      }
+                      }`}
                     >
-                      <span className="schedule-segment-number">
-                        Segment{" "}
-                        {segment}
-                      </span>
+                      <button
+                        type="button"
+                        className="schedule-compact-trigger"
+                        onClick={() =>
+                          toggleSegment(
+                            segment,
+                          )
+                        }
+                        aria-expanded={
+                          isOpen
+                        }
+                        aria-controls={`schedule-segment-${segment}`}
+                      >
+                        <div className="schedule-compact-trigger-main">
+                          <span className="schedule-compact-chevron">
+                            {isOpen
+                              ? "−"
+                              : "+"}
+                          </span>
 
-                      {status ===
-                        "active" && (
-                        <span className="schedule-segment-live">
-                          Live
-                        </span>
-                      )}
+                          <div className="schedule-compact-trigger-text">
+                            <strong>
+                              Segment{" "}
+                              {
+                                segment
+                              }
+                            </strong>
 
-                      {status ===
-                        "completed" && (
-                        <span className="schedule-segment-done">
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div
-                className="schedule-simple-panel"
-                role="tabpanel"
-              >
-                <div className="schedule-simple-header">
-                  <div>
-                    <p className="schedule-simple-kicker">
-                      PROGRAM SEGMENT{" "}
-                      {activeSegment}
-                    </p>
-
-                    <h3>
-                      {
-                        segmentInformation[
-                          activeSegment
-                        ].title
-                      }
-                    </h3>
-
-                    <p>
-                      {
-                        segmentInformation[
-                          activeSegment
-                        ].description
-                      }
-                    </p>
-                  </div>
-
-                  <span className="schedule-simple-count">
-                    {
-                      segmentPrograms.length
-                    }{" "}
-                    {segmentPrograms.length ===
-                    1
-                      ? "program"
-                      : "programs"}
-                  </span>
-                </div>
-
-                {segmentPrograms.length ===
-                0 ? (
-                  <div className="schedule-message">
-                    No programs have
-                    been published for
-                    this segment yet.
-                  </div>
-                ) : (
-                  <div className="schedule-simple-list">
-                    {groupedPrograms.map(
-                      (
-                        group,
-                        groupIndex,
-                      ) => (
-                        <div
-                          className="schedule-simple-time-group"
-                          key={`${group.time}-${groupIndex}`}
-                        >
-                          <div className="schedule-simple-time">
-                            {group.time}
-                          </div>
-
-                          <div className="schedule-simple-programs">
-                            {group.programs.map(
-                              (
-                                program,
-                              ) => (
-                                <article
-                                  key={
-                                    program.id
-                                  }
-                                  className={`schedule-simple-item schedule-status-${program.status}`}
-                                >
-                                  <div className="schedule-simple-item-main">
-                                    <div className="schedule-simple-meta">
-                                      {program.location && (
-                                        <span className="schedule-simple-venue">
-                                          {
-                                            program.location
-                                          }
-                                        </span>
-                                      )}
-
-                                      {program.type && (
-                                        <span className="schedule-simple-type">
-                                          {
-                                            program.type
-                                          }
-                                        </span>
-                                      )}
-
-                                      {program.isPresenter && (
-                                        <span className="schedule-simple-presenter-tag">
-                                          Presentation
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    <h4>
-                                      {
-                                        program.title
-                                      }
-                                    </h4>
-
-                                    {program.isPresenter &&
-                                      program.presenterName && (
-                                        <p className="schedule-simple-presenter">
-                                          {
-                                            program.presenterName
-                                          }
-                                        </p>
-                                      )}
-
-                                    {program.description && (
-                                      <p className="schedule-simple-description">
-                                        {
-                                          program.description
-                                        }
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  <div className="schedule-simple-state">
-                                    {program.status ===
-                                      "active" && (
-                                      <span className="schedule-simple-live">
-                                        LIVE
-                                      </span>
-                                    )}
-
-                                    {program.status ===
-                                      "completed" && (
-                                      <span className="schedule-simple-completed">
-                                        Completed
-                                      </span>
-                                    )}
-                                  </div>
-                                </article>
-                              ),
-                            )}
+                            <span>
+                              {
+                                segmentInformation[
+                                  segment
+                                ]
+                                  .description
+                              }
+                            </span>
                           </div>
                         </div>
-                      ),
-                    )}
-                  </div>
-                )}
 
-                <div className="schedule-segment-navigation">
-                  <button
-                    type="button"
-                    className="schedule-segment-nav-button"
-                    disabled={
-                      activeSegment === 1
-                    }
-                    onClick={
-                      goToPreviousSegment
-                    }
-                  >
-                    ← Previous
-                  </button>
+                        <div className="schedule-compact-trigger-side">
+                          {status ===
+                            "active" && (
+                            <span className="schedule-compact-live-badge">
+                              LIVE
+                            </span>
+                          )}
 
-                  <span className="schedule-segment-position">
-                    Segment{" "}
-                    {activeSegment} of
-                    4
-                  </span>
+                          {status ===
+                            "completed" && (
+                            <span className="schedule-compact-completed-badge">
+                              Completed
+                            </span>
+                          )}
 
-                  <button
-                    type="button"
-                    className="schedule-segment-nav-button"
-                    disabled={
-                      activeSegment === 4
-                    }
-                    onClick={
-                      goToNextSegment
-                    }
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-            </>
+                          <span className="schedule-compact-count">
+                            {
+                              segmentPrograms.length
+                            }{" "}
+                            {segmentPrograms.length ===
+                            1
+                              ? "item"
+                              : "items"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {isOpen && (
+                        <div
+                          id={`schedule-segment-${segment}`}
+                          className="schedule-compact-content"
+                        >
+                          {groups.length ===
+                          0 ? (
+                            <div className="schedule-compact-empty">
+                              No
+                              programs
+                              published
+                              for this
+                              segment.
+                            </div>
+                          ) : (
+                            <div className="schedule-compact-table-wrapper">
+                              <table className="schedule-compact-table">
+                                <thead>
+                                  <tr>
+                                    <th className="schedule-col-time">
+                                      Time
+                                    </th>
+
+                                    <th className="schedule-col-venue">
+                                      Venue
+                                    </th>
+
+                                    <th>
+                                      Program
+                                      / Presenter
+                                    </th>
+
+                                    <th className="schedule-col-status">
+                                      Status
+                                    </th>
+                                  </tr>
+                                </thead>
+
+                                <tbody>
+                                  {groups.flatMap(
+                                    (
+                                      group,
+                                    ) =>
+                                      group.programs.map(
+                                        (
+                                          program,
+                                          programIndex,
+                                        ) => (
+                                          <tr
+                                            key={
+                                              program.id
+                                            }
+                                            className={`schedule-compact-row schedule-compact-row-${program.status}`}
+                                          >
+                                            <td className="schedule-compact-time">
+                                              {programIndex ===
+                                              0
+                                                ? group.time
+                                                : ""}
+                                            </td>
+
+                                            <td className="schedule-compact-venue">
+                                              {program.location ||
+                                                "—"}
+                                            </td>
+
+                                            <td className="schedule-compact-program">
+                                              <div className="schedule-compact-program-title">
+                                                {
+                                                  program.title
+                                                }
+                                              </div>
+
+                                              {program.isPresenter &&
+                                                program.presenterName && (
+                                                  <div className="schedule-compact-presenter">
+                                                    {
+                                                      program.presenterName
+                                                    }
+                                                  </div>
+                                                )}
+
+                                              {!program.isPresenter &&
+                                                program.type && (
+                                                  <div className="schedule-compact-type">
+                                                    {
+                                                      program.type
+                                                    }
+                                                  </div>
+                                                )}
+                                            </td>
+
+                                            <td className="schedule-compact-status">
+                                              {program.status ===
+                                                "active" && (
+                                                <span className="schedule-table-live">
+                                                  Live
+                                                </span>
+                                              )}
+
+                                              {program.status ===
+                                                "completed" && (
+                                                <span className="schedule-table-completed">
+                                                  Done
+                                                </span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ),
+                                      ),
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                },
+              )}
+            </div>
           )}
       </div>
     </section>
