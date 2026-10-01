@@ -11469,6 +11469,90 @@ tbody tr:last-child td {
   object-fit: contain;
 }
 
+/* =========================================================
+   FINAL MOBILE FOOTER SPONSOR FIX
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .footer-sponsors {
+    width: 100%;
+    text-align: center;
+  }
+
+  .footer-sponsor-heading {
+    width: 100%;
+    text-align: center;
+  }
+
+  .footer-sponsor-logos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .footer-sponsor-logo {
+    flex: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: min(220px, 80%);
+    height: 80px;
+
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .footer-sponsor-logo img {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: 180px;
+    max-height: 60px;
+
+    margin: auto;
+
+    object-fit: contain;
+    object-position: center;
+  }
+}
+
+/* =========================================================
+   KEYNOTE / GUEST SPEAKER SPACING
+   ========================================================= */
+
+.speaker-group + .guest-speaker-group {
+  margin-top: 48px;
+}
+
+.guest-speaker-heading {
+  margin-bottom: 24px;
+}
+
+.guest-speaker-heading h3 {
+  margin: 0;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .speaker-group + .guest-speaker-group {
+    margin-top: 36px;
+  }
+
+  .guest-speaker-heading {
+    margin-bottom: 18px;
+  }
+}
+
+
 
 
 
