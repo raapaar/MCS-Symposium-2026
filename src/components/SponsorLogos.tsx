@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   collection,
   getDocs,
@@ -7,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../services/firebase";
+
 import type {
   Sponsor,
   SponsorTier,
@@ -65,36 +70,27 @@ function SponsorLogos({
 
               return {
                 id: document.id,
-
                 name:
                   data.name ?? "",
-
                 description:
                   data.description ?? "",
-
                 logo:
                   data.logo ?? "",
-
                 logoPath:
                   data.logoPath ?? "",
-
                 website:
                   data.website ?? "",
-
                 category:
                   data.category ?? "",
-
                 tier:
                   getSponsorTier(
                     data.tier,
                   ),
-
                 order:
                   typeof data.order ===
                   "number"
                     ? data.order
                     : 0,
-
                 published:
                   data.published === true,
               };
@@ -196,7 +192,7 @@ function SponsorLogos({
               loading="lazy"
             />
           ) : (
-            <span>
+            <span className="footer-sponsor-name">
               {sponsor.name}
             </span>
           );

@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   collection,
   getDocs,
@@ -7,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../services/firebase";
+
 import type {
   Sponsor,
   SponsorTier,
@@ -23,8 +28,6 @@ function getSponsorTier(
     return value;
   }
 
-  // Backward compatibility for sponsor records
-  // created before Phase 7.1C.
   return "partner";
 }
 
@@ -72,54 +75,37 @@ function Sponsors() {
         );
 
         const snapshot =
-          await getDocs(
-            sponsorsQuery,
-          );
+          await getDocs(sponsorsQuery);
 
-        const loadedSponsors:
-          Sponsor[] =
+        const loadedSponsors: Sponsor[] =
           snapshot.docs.map(
             (sponsorDocument) => {
               const data =
                 sponsorDocument.data();
 
               return {
-                id:
-                  sponsorDocument.id,
-
-                name:
-                  data.name ?? "",
-
+                id: sponsorDocument.id,
+                name: data.name ?? "",
                 description:
-                  data.description ??
-                  "",
-
-                logo:
-                  data.logo ?? "",
-
+                  data.description ?? "",
+                logo: data.logo ?? "",
                 logoPath:
                   data.logoPath ?? "",
-
                 website:
                   data.website ?? "",
-
                 category:
                   data.category ?? "",
-
                 tier:
                   getSponsorTier(
                     data.tier,
                   ),
-
                 order:
                   typeof data.order ===
                   "number"
                     ? data.order
                     : 0,
-
                 published:
-                  data.published ===
-                  true,
+                  data.published === true,
               };
             },
           );
@@ -129,9 +115,7 @@ function Sponsors() {
             a.order - b.order,
         );
 
-        setSponsors(
-          loadedSponsors,
-        );
+        setSponsors(loadedSponsors);
       } catch (err) {
         console.error(
           "Error loading sponsors:",
@@ -161,23 +145,19 @@ function Sponsors() {
           </span>
 
           <h2>
-            Sponsors &amp;
-            Partners
+            Sponsors &amp; Partners
           </h2>
 
           <p>
-            Organizations supporting
-            the MCS Symposium 2026
-            and the Mathematics and
-            Computing Science
-            community.
+            Organizations supporting the MCS
+            Symposium 2026 and the Mathematics
+            and Computing Science community.
           </p>
         </div>
 
         {loading && (
           <p className="admin-message">
-            Loading sponsors and
-            partners...
+            Loading sponsors and partners...
           </p>
         )}
 
@@ -191,9 +171,8 @@ function Sponsors() {
           !error &&
           sponsors.length === 0 && (
             <p className="admin-message">
-              No sponsors or
-              partners are currently
-              published.
+              No sponsors or partners are
+              currently published.
             </p>
           )}
 
@@ -205,16 +184,12 @@ function Sponsors() {
                 (sponsor) => (
                   <article
                     className={`sponsor-card sponsor-card-${sponsor.tier}`}
-                    key={
-                      sponsor.id
-                    }
+                    key={sponsor.id}
                   >
                     <div className="sponsor-logo-wrapper">
                       {sponsor.logo ? (
                         <img
-                          src={
-                            sponsor.logo
-                          }
+                          src={sponsor.logo}
                           alt={`${sponsor.name} logo`}
                           className="sponsor-logo"
                         />
@@ -239,26 +214,24 @@ function Sponsors() {
 
                         {sponsor.category && (
                           <span className="sponsor-category">
-                            {
-                              sponsor.category
-                            }
+                            {sponsor.category}
                           </span>
                         )}
                       </div>
 
                       <h3>
-                        {
-                          sponsor.name
-                        }
+                        {sponsor.name}
                       </h3>
 
-                      <p>
-                        {
-                          sponsor.description
-                        }
-                      </p>
+                      {sponsor.description && (
+                        <p>
+                          {
+                            sponsor.description
+                          }
+                        </p>
+                      )}
 
-                      {sponsor.website ? (
+                      {sponsor.website && (
                         <a
                           href={
                             sponsor.website
@@ -267,14 +240,8 @@ function Sponsors() {
                           rel="noopener noreferrer"
                           className="sponsor-link"
                         >
-                          Visit Website
+                          Visit Website ↗
                         </a>
-                      ) : (
-                        <span className="sponsor-link">
-                          Website
-                          information
-                          coming soon
-                        </span>
                       )}
                     </div>
                   </article>

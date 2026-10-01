@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   collection,
   getDocs,
@@ -19,9 +23,15 @@ interface GalleryRecord {
 }
 
 function Gallery() {
-  const [items, setItems] = useState<GalleryRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [items, setItems] = useState<
+    GalleryRecord[]
+  >([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
     async function loadGallery() {
@@ -34,46 +44,67 @@ function Gallery() {
           where("published", "==", true),
         );
 
-        const snapshot = await getDocs(galleryQuery);
+        const snapshot =
+          await getDocs(galleryQuery);
 
-        const publishedItems: GalleryRecord[] = snapshot.docs
-          .map((item) => {
-            const data = item.data();
+        const publishedItems: GalleryRecord[] =
+          snapshot.docs
+            .map((item) => {
+              const data = item.data();
 
-            return {
-              id: item.id,
-              title: data.title ?? "",
-              description: data.description ?? "",
-              image: data.image ?? "",
-              category: data.category ?? "",
-              order: typeof data.order === "number" ? data.order : 0,
-              published: data.published === true,
-            };
-          })
-          .sort((a, b) => a.order - b.order);
+              return {
+                id: item.id,
+                title: data.title ?? "",
+                description:
+                  data.description ?? "",
+                image: data.image ?? "",
+                category:
+                  data.category ?? "",
+                order:
+                  typeof data.order ===
+                  "number"
+                    ? data.order
+                    : 0,
+                published:
+                  data.published === true,
+              };
+            })
+            .sort(
+              (a, b) =>
+                a.order - b.order,
+            );
 
         setItems(publishedItems);
       } catch (loadError) {
         console.error(loadError);
-        setError("Unable to load gallery items at this time.");
+
+        setError(
+          "Unable to load gallery items at this time.",
+        );
       } finally {
         setLoading(false);
       }
     }
 
-    loadGallery();
+    void loadGallery();
   }, []);
 
   return (
-    <section className="gallery-section" id="gallery">
+    <section
+      className="gallery-section"
+      id="gallery"
+    >
       <div className="section-container">
         <div className="section-heading">
-          <span className="section-eyebrow">Event Highlights</span>
+          <span className="section-eyebrow">
+            Event Highlights
+          </span>
 
           <h2>Gallery</h2>
 
           <p>
-            Explore highlights from the Mathematics and Computing Science
+            Explore highlights from the
+            Mathematics and Computing Science
             Department and MCS Symposium 2026.
           </p>
         </div>
@@ -90,47 +121,57 @@ function Gallery() {
           </div>
         )}
 
-        {!loading && !error && items.length === 0 && (
-          <div className="schedule-message">
-            No gallery images are currently available.
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          items.length === 0 && (
+            <div className="schedule-message">
+              No gallery images are currently
+              available.
+            </div>
+          )}
 
-        {!loading && !error && items.length > 0 && (
-          <div className="gallery-grid">
-            {items.map((item) => (
-              <article className="gallery-card" key={item.id}>
-                <div className="gallery-image">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="gallery-image-placeholder">
-                      Image not available
-                    </div>
-                  )}
-
-                  <div className="gallery-card-title">
-                    {item.title}
+        {!loading &&
+          !error &&
+          items.length > 0 && (
+            <div className="gallery-grid">
+              {items.map((item) => (
+                <article
+                  className="gallery-card"
+                  key={item.id}
+                >
+                  <div className="gallery-image">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="gallery-image-placeholder">
+                        Image not available
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                <div className="gallery-content">
-                  <span className="gallery-category">
-                    {item.category}
-                  </span>
+                  <div className="gallery-content">
+                    {item.category && (
+                      <span className="gallery-category">
+                        {item.category}
+                      </span>
+                    )}
 
-                  <h3>{item.title}</h3>
+                    <h3>{item.title}</h3>
 
-                  <p>{item.description}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                    {item.description && (
+                      <p>
+                        {item.description}
+                      </p>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
       </div>
     </section>
   );

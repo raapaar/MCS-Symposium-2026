@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   collection,
   getDocs,
@@ -14,7 +19,8 @@ import type {
   ScheduleStatus,
 } from "../types/schedule";
 
-interface LoadedScheduleItem extends ScheduleItem {
+interface LoadedScheduleItem
+  extends ScheduleItem {
   segment: ScheduleSegment;
   status: ScheduleStatus;
   order: number;
@@ -78,140 +84,159 @@ function Schedule() {
   const [activeSegment, setActiveSegment] =
     useState<ScheduleSegment>(1);
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
-    const loadPublishedPrograms = async () => {
-      setLoading(true);
-      setError("");
+    const loadPublishedPrograms =
+      async () => {
+        setLoading(true);
+        setError("");
 
-      try {
-        const scheduleQuery = query(
-          collection(db, "schedule"),
-          where("published", "==", true),
-        );
+        try {
+          const scheduleQuery = query(
+            collection(db, "schedule"),
+            where(
+              "published",
+              "==",
+              true,
+            ),
+          );
 
-        const snapshot =
-          await getDocs(scheduleQuery);
-
-        const loadedPrograms: LoadedScheduleItem[] =
-          snapshot.docs
-            .map((scheduleDoc) => {
-              const data =
-                scheduleDoc.data();
-
-              const status: ScheduleStatus =
-                data.status === "active" ||
-                data.status === "completed"
-                  ? data.status
-                  : "upcoming";
-
-              return {
-                id: scheduleDoc.id,
-                time: data.time ?? "",
-                type: data.type ?? "",
-                title: data.title ?? "",
-                description:
-                  data.description ?? "",
-                location:
-                  data.location ?? "",
-                isPresenter:
-                  data.isPresenter === true,
-                presenterName:
-                  data.presenterName ?? "",
-                status,
-                segment:
-                  normalizeSegment(
-                    data.segment,
-                  ),
-                order: Number(
-                  data.order ?? 0,
-                ),
-                published:
-                  data.published === true,
-              };
-            })
-            .sort(
-              (a, b) =>
-                a.order - b.order,
+          const snapshot =
+            await getDocs(
+              scheduleQuery,
             );
 
-        setPrograms(loadedPrograms);
-      } catch {
-        setError(
-          "The symposium schedule is currently unavailable.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+          const loadedPrograms: LoadedScheduleItem[] =
+            snapshot.docs
+              .map((scheduleDoc) => {
+                const data =
+                  scheduleDoc.data();
+
+                const status: ScheduleStatus =
+                  data.status ===
+                    "active" ||
+                  data.status ===
+                    "completed"
+                    ? data.status
+                    : "upcoming";
+
+                return {
+                  id: scheduleDoc.id,
+
+                  time:
+                    data.time ?? "",
+
+                  type:
+                    data.type ?? "",
+
+                  title:
+                    data.title ?? "",
+
+                  description:
+                    data.description ?? "",
+
+                  location:
+                    data.location ?? "",
+
+                  isPresenter:
+                    data.isPresenter ===
+                    true,
+
+                  presenterName:
+                    data.presenterName ??
+                    "",
+
+                  status,
+
+                  segment:
+                    normalizeSegment(
+                      data.segment,
+                    ),
+
+                  order: Number(
+                    data.order ?? 0,
+                  ),
+
+                  published:
+                    data.published ===
+                    true,
+                };
+              })
+              .sort(
+                (a, b) =>
+                  a.order - b.order,
+              );
+
+          setPrograms(
+            loadedPrograms,
+          );
+        } catch {
+          setError(
+            "The symposium schedule is currently unavailable.",
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
 
     void loadPublishedPrograms();
   }, []);
 
-  /*
-   * Only the selected segment is rendered.
-   * This is what prevents the page from becoming
-   * extremely long as more programs are added.
-   */
-  const segmentPrograms = useMemo(
-    () =>
-      programs.filter(
-        (program) =>
-          program.segment ===
-          activeSegment,
-      ),
-    [activeSegment, programs],
-  );
-
-  /*
-   * Group identical time values so SPBA and E50
-   * sessions occurring simultaneously appear
-   * together.
-   */
-  const groupedPrograms = useMemo(() => {
-    const groups: Array<{
-      time: string;
-      programs: LoadedScheduleItem[];
-    }> = [];
-
-    segmentPrograms.forEach(
-      (program) => {
-        const existing =
-          groups.find(
-            (group) =>
-              group.time ===
-              program.time,
-          );
-
-        if (existing) {
-          existing.programs.push(
-            program,
-          );
-        } else {
-          groups.push({
-            time: program.time,
-            programs: [program],
-          });
-        }
-      },
+  const segmentPrograms =
+    useMemo(
+      () =>
+        programs.filter(
+          (program) =>
+            program.segment ===
+            activeSegment,
+        ),
+      [activeSegment, programs],
     );
 
-    return groups;
-  }, [segmentPrograms]);
-
   /*
-   * Determine the visual state of each segment.
-   *
-   * Active:
-   * At least one program has been manually
-   * marked Live.
-   *
-   * Completed:
-   * Every program in that segment has been
-   * manually marked Completed.
+   * Programs with the same time are
+   * grouped together. This keeps SPBA
+   * and E50 concurrent presentations
+   * visually connected without turning
+   * them into large cards.
    */
+  const groupedPrograms =
+    useMemo(() => {
+      const groups: Array<{
+        time: string;
+        programs: LoadedScheduleItem[];
+      }> = [];
+
+      segmentPrograms.forEach(
+        (program) => {
+          const existing =
+            groups.find(
+              (group) =>
+                group.time ===
+                program.time,
+            );
+
+          if (existing) {
+            existing.programs.push(
+              program,
+            );
+          } else {
+            groups.push({
+              time: program.time,
+              programs: [program],
+            });
+          }
+        },
+      );
+
+      return groups;
+    }, [segmentPrograms]);
+
   const getSegmentStatus = (
     segment: ScheduleSegment,
   ): ScheduleStatus => {
@@ -247,7 +272,8 @@ function Schedule() {
   const goToPreviousSegment = () => {
     if (activeSegment > 1) {
       setActiveSegment(
-        (activeSegment - 1) as ScheduleSegment,
+        (activeSegment -
+          1) as ScheduleSegment,
       );
     }
   };
@@ -255,7 +281,8 @@ function Schedule() {
   const goToNextSegment = () => {
     if (activeSegment < 4) {
       setActiveSegment(
-        (activeSegment + 1) as ScheduleSegment,
+        (activeSegment +
+          1) as ScheduleSegment,
       );
     }
   };
@@ -263,7 +290,7 @@ function Schedule() {
   return (
     <section
       id="schedule"
-      className="content-section schedule-section"
+      className="content-section schedule-section schedule-list-section"
     >
       <div className="content-container">
         <div className="section-heading-row">
@@ -277,17 +304,20 @@ function Schedule() {
             </h2>
 
             <p>
-              Explore the symposium in four
-              program segments. Concurrent
-              presentations at SPBA and E50
-              are displayed together.
+              Browse the symposium
+              program by segment.
+              Presentations happening
+              simultaneously at SPBA and
+              E50 are grouped under the
+              same time.
             </p>
           </div>
         </div>
 
         {loading && (
           <div className="schedule-message">
-            Loading symposium schedule...
+            Loading symposium
+            schedule...
           </div>
         )}
 
@@ -301,9 +331,10 @@ function Schedule() {
           !error &&
           programs.length === 0 && (
             <div className="schedule-message">
-              The symposium schedule will
-              be published here once
-              programs are confirmed.
+              The symposium schedule
+              will be published here
+              once programs are
+              confirmed.
             </div>
           )}
 
@@ -317,7 +348,12 @@ function Schedule() {
                 aria-label="Symposium program segments"
               >
                 {(
-                  [1, 2, 3, 4] as ScheduleSegment[]
+                  [
+                    1,
+                    2,
+                    3,
+                    4,
+                  ] as ScheduleSegment[]
                 ).map((segment) => {
                   const status =
                     getSegmentStatus(
@@ -369,12 +405,12 @@ function Schedule() {
               </div>
 
               <div
-                className="schedule-segment-panel"
+                className="schedule-simple-panel"
                 role="tabpanel"
               >
-                <div className="schedule-segment-header">
+                <div className="schedule-simple-header">
                   <div>
-                    <p className="section-label">
+                    <p className="schedule-simple-kicker">
                       PROGRAM SEGMENT{" "}
                       {activeSegment}
                     </p>
@@ -396,7 +432,7 @@ function Schedule() {
                     </p>
                   </div>
 
-                  <div className="schedule-segment-count">
+                  <span className="schedule-simple-count">
                     {
                       segmentPrograms.length
                     }{" "}
@@ -404,39 +440,32 @@ function Schedule() {
                     1
                       ? "program"
                       : "programs"}
-                  </div>
+                  </span>
                 </div>
 
                 {segmentPrograms.length ===
                 0 ? (
                   <div className="schedule-message">
-                    No programs have been
-                    published for this
-                    segment yet.
+                    No programs have
+                    been published for
+                    this segment yet.
                   </div>
                 ) : (
-                  <div className="schedule-segment-timeline">
+                  <div className="schedule-simple-list">
                     {groupedPrograms.map(
                       (
                         group,
                         groupIndex,
                       ) => (
                         <div
-                          className="schedule-segment-row"
+                          className="schedule-simple-time-group"
                           key={`${group.time}-${groupIndex}`}
                         >
-                          <div className="schedule-segment-time">
+                          <div className="schedule-simple-time">
                             {group.time}
                           </div>
 
-                          <div
-                            className={`schedule-segment-events ${
-                              group.programs
-                                .length > 1
-                                ? "has-concurrent-events"
-                                : ""
-                            }`}
-                          >
+                          <div className="schedule-simple-programs">
                             {group.programs.map(
                               (
                                 program,
@@ -445,12 +474,20 @@ function Schedule() {
                                   key={
                                     program.id
                                   }
-                                  className={`schedule-segment-event schedule-status-${program.status}`}
+                                  className={`schedule-simple-item schedule-status-${program.status}`}
                                 >
-                                  <div className="schedule-event-top">
-                                    <div className="schedule-event-badges">
+                                  <div className="schedule-simple-item-main">
+                                    <div className="schedule-simple-meta">
+                                      {program.location && (
+                                        <span className="schedule-simple-venue">
+                                          {
+                                            program.location
+                                          }
+                                        </span>
+                                      )}
+
                                       {program.type && (
-                                        <span className="schedule-type">
+                                        <span className="schedule-simple-type">
                                           {
                                             program.type
                                           }
@@ -458,58 +495,51 @@ function Schedule() {
                                       )}
 
                                       {program.isPresenter && (
-                                        <span className="schedule-presenter-badge">
-                                          Presenter
+                                        <span className="schedule-simple-presenter-tag">
+                                          Presentation
                                         </span>
                                       )}
                                     </div>
 
-                                    {program.location && (
-                                      <span className="schedule-venue">
-                                        {
-                                          program.location
-                                        }
-                                      </span>
-                                    )}
-                                  </div>
+                                    <h4>
+                                      {
+                                        program.title
+                                      }
+                                    </h4>
 
-                                  {program.isPresenter &&
-                                    program.presenterName && (
-                                      <p className="schedule-presenter-name">
+                                    {program.isPresenter &&
+                                      program.presenterName && (
+                                        <p className="schedule-simple-presenter">
+                                          {
+                                            program.presenterName
+                                          }
+                                        </p>
+                                      )}
+
+                                    {program.description && (
+                                      <p className="schedule-simple-description">
                                         {
-                                          program.presenterName
+                                          program.description
                                         }
                                       </p>
                                     )}
+                                  </div>
 
-                                  <h4>
-                                    {
-                                      program.title
-                                    }
-                                  </h4>
+                                  <div className="schedule-simple-state">
+                                    {program.status ===
+                                      "active" && (
+                                      <span className="schedule-simple-live">
+                                        LIVE
+                                      </span>
+                                    )}
 
-                                  {program.status ===
-                                    "active" && (
-                                    <div className="schedule-live-label">
-                                      Happening
-                                      Now
-                                    </div>
-                                  )}
-
-                                  {program.status ===
-                                    "completed" && (
-                                    <div className="schedule-completed-label">
-                                      Completed
-                                    </div>
-                                  )}
-
-                                  {program.description && (
-                                    <p className="schedule-event-description">
-                                      {
-                                        program.description
-                                      }
-                                    </p>
-                                  )}
+                                    {program.status ===
+                                      "completed" && (
+                                      <span className="schedule-simple-completed">
+                                        Completed
+                                      </span>
+                                    )}
+                                  </div>
                                 </article>
                               ),
                             )}
@@ -531,11 +561,13 @@ function Schedule() {
                       goToPreviousSegment
                     }
                   >
-                    ← Previous Segment
+                    ← Previous
                   </button>
 
-                  <span>
-                    {activeSegment} of 4
+                  <span className="schedule-segment-position">
+                    Segment{" "}
+                    {activeSegment} of
+                    4
                   </span>
 
                   <button
@@ -548,7 +580,7 @@ function Schedule() {
                       goToNextSegment
                     }
                   >
-                    Next Segment →
+                    Next →
                   </button>
                 </div>
               </div>

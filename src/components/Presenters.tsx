@@ -2,6 +2,7 @@ import {
   useEffect,
   useState,
 } from "react";
+
 import {
   collection,
   getDocs,
@@ -10,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../services/firebase";
+
 import type {
   Presenter,
   PresenterScreenshot,
@@ -186,7 +188,11 @@ function Presenters() {
 
     return (
       <article
-        className="presenter-card"
+        className={`presenter-card ${
+          isKeynote
+            ? "presenter-card-keynote"
+            : "presenter-card-project"
+        }`}
         key={presenter.id}
       >
         <div className="presenter-image-placeholder">
@@ -215,51 +221,57 @@ function Presenters() {
         </div>
 
         <div className="presenter-content">
-          <div className="presenter-card-labels">
-            <span className="presenter-category">
-              {isKeynote
-                ? "Keynote Speaker"
-                : presenter.category ||
-                  "Presenter"}
-            </span>
+          <div className="presenter-card-main">
+            <div className="presenter-card-labels">
+              <span className="presenter-category">
+                {isKeynote
+                  ? "Keynote Speaker"
+                  : presenter.category ||
+                    "Presenter"}
+              </span>
+            </div>
+
+            <h3>{presenter.name}</h3>
+
+            <div className="presenter-role-space">
+              {presenter.role && (
+                <p className="presenter-role">
+                  {presenter.role}
+                </p>
+              )}
+            </div>
+
+            <div className="presenter-topic-space">
+              {presenter.topic && (
+                <div className="presenter-topic-block">
+                  <span className="presenter-topic-label">
+                    {isKeynote
+                      ? "Keynote Presentation"
+                      : "Project / Presentation"}
+                  </span>
+
+                  <p className="presenter-topic">
+                    {presenter.topic}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <h3>{presenter.name}</h3>
-
-          {presenter.role && (
-            <p className="presenter-role">
-              {presenter.role}
-            </p>
-          )}
-
-          {presenter.topic && (
-            <div className="presenter-topic-block">
-              <span className="presenter-topic-label">
-                {isKeynote
-                  ? "Keynote Presentation"
-                  : "Project / Presentation"}
-              </span>
-
-              <p className="presenter-topic">
-                {presenter.topic}
-              </p>
-            </div>
-          )}
-
-    
-
           <div className="presenter-card-actions">
-            <button
-              type="button"
-              className="button button-primary presenter-view-button"
-              onClick={() =>
-                setSelectedPresenter(presenter)
-              }
-            >
-              {isKeynote
-                ? "View Presentation"
-                : "View Project"}
-            </button>
+            {!isKeynote && (
+              <button
+                type="button"
+                className="button button-primary presenter-view-button"
+                onClick={() =>
+                  setSelectedPresenter(
+                    presenter,
+                  )
+                }
+              >
+                View Project
+              </button>
+            )}
 
             {presenter.linkedinUrl && (
               <a
@@ -306,13 +318,16 @@ function Presenters() {
         </section>
       )}
 
+      <div
+        id="keynote-speakers"
+        className="section-scroll-anchor"
+        aria-hidden="true"
+      />
+
       {!loading &&
         !error &&
         keynoteSpeakers.length > 0 && (
-          <section
-            id="keynote-speakers"
-            className="content-section keynote-section"
-          >
+          <section className="content-section keynote-section">
             <div className="content-container">
               <div className="section-heading-row">
                 <div>
