@@ -1,0 +1,139 @@
+/* V2 milestone 1. Public shell only; legacy admin styles remain isolated. */
+html:has(.v2-site) {
+  scrollbar-color: #992344 #f5e9ed;
+  scrollbar-width: auto;
+  scroll-padding-top: 110px;
+}
+
+html:has(.v2-site)::-webkit-scrollbar { width: 12px; }
+html:has(.v2-site)::-webkit-scrollbar-track { background: #f5e9ed; }
+html:has(.v2-site)::-webkit-scrollbar-thumb {
+  background: #992344;
+  border: 3px solid #f5e9ed;
+  border-radius: 12px;
+}
+html:has(.v2-site)::-webkit-scrollbar-thumb:hover { background: #650d2a; }
+
+.v2-site {
+  --v2-accent: #f1c594;
+  --v2-ink: #290810;
+  --v2-line: #ead7dd;
+}
+
+.v2-site .site-header {
+  position: sticky;
+  top: 0;
+  background: rgb(255 255 255 / 97%);
+  border-bottom-color: var(--v2-line);
+}
+
+.v2-site .site-navigation a { font-size: 0.85rem; }
+.v2-site .site-navigation a::after { bottom: 20px; }
+.v2-site .site-navigation a:focus-visible::after { transform: scaleX(1); right: 0; }
+.v2-site :is(a, button, select, input, textarea):focus-visible {
+  outline: 3px solid #a72c4d;
+  outline-offset: 5px;
+}
+.v2-site .v2-event-hero :is(a, button):focus-visible { outline-color: #f1c594; }
+.v2-skip-link {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 1001;
+  padding: 12px 18px;
+  transform: translateY(-180%);
+  border-radius: 6px;
+  background: white;
+  color: #650d2a;
+  font-weight: 700;
+}
+.v2-skip-link:focus { transform: none; }
+.v2-scroll-progress { position: fixed; inset: 0 0 auto; height: 3px; z-index: 1000; pointer-events: none; }
+.v2-scroll-progress > div { height: 100%; background: #a72c4d; transform: scaleX(0); transform-origin: left; }
+
+.v2-site .v2-event-hero {
+  min-height: min(920px, 100svh);
+  background: radial-gradient(ellipse at 85% 20%, #8e2648, transparent 65%), #260810;
+}
+.v2-site .v2-event-hero::before {
+  background: linear-gradient(100deg, rgb(24 3 10 / 96%) 10%, rgb(48 7 22 / 86%) 50%, rgb(35 4 14 / 55%));
+}
+.v2-site .v2-event-hero::after {
+  inset: 32px 32px 32px auto;
+  width: 32%;
+  height: auto;
+  border: 1px solid rgb(241 197 148 / 24%);
+  border-radius: 48% 48% 3px 3px;
+  background: linear-gradient(160deg, rgb(241 197 148 / 8%), transparent);
+  filter: none;
+  pointer-events: none;
+}
+.v2-site .v2-event-hero .event-hero-inner { position: relative; padding-block: clamp(48px, 7vw, 100px) 116px; }
+.v2-site .v2-event-hero h1 { max-width: 950px; font-size: clamp(3rem, 7.7vw, 6.7rem); line-height: 1; letter-spacing: -0.055em; }
+.v2-site .event-hero-eyebrow { color: var(--v2-accent); font-size: 0.72rem; letter-spacing: 0.22em; }
+.v2-site .event-hero-tagline { max-width: 650px; }
+.v2-site .event-hero-meta span { border-radius: 5px; background: rgb(255 255 255 / 5%); }
+.v2-site .event-primary-button { background: #f1c594; color: #290810; border-color: #f1c594; }
+.v2-site .event-primary-button:hover { background: #ffe1bd; }
+.v2-site .event-secondary-button { border-color: rgb(255 255 255 / 55%); }
+.v2-site .event-countdown { max-width: 570px; border-radius: 10px; background: rgb(24 3 10 / 60%); }
+.v2-site .countdown-item { border-radius: 5px; background: transparent; border-right: 1px solid rgb(255 255 255 / 20%); }
+.v2-site .countdown-item:last-child { border-right: 0; }
+.v2-site .countdown-item strong { font-variant-numeric: tabular-nums; }
+
+.v2-hero-stage { position: absolute; inset: 0; pointer-events: none; }
+.v2-hero-backdrops { position: absolute; inset: 0; z-index: -2; overflow: hidden; }
+.v2-hero-backdrops img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 900ms ease; }
+.v2-hero-backdrops img.is-active { opacity: 1; }
+.v2-hero-controls {
+  position: absolute;
+  inset: auto max(24px, calc((100% - 1180px) / 2)) 30px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  color: white;
+}
+.v2-hero-position { display: flex; align-items: baseline; gap: 8px; min-width: 0; margin-right: auto; font-size: 0.75rem; }
+.v2-hero-position b { color: var(--v2-accent); font-size: 1.15rem; }
+.v2-hero-caption { max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 12px; }
+.v2-hero-controls button { min-height: 44px; min-width: 44px; padding: 8px 12px; border: 1px solid rgb(255 255 255 / 45%); border-radius: 5px; color: white; background: #350f1d; cursor: pointer; font: inherit; font-size: 0.8rem; }
+.v2-hero-controls button:hover { background: #67233c; }
+
+.v2-site .event-information { border-bottom-color: var(--v2-line); }
+.v2-site .event-about-section { background: #fbf7f5; }
+.v2-site .event-about-container h2 { max-width: 22ch; color: var(--v2-ink); font-size: clamp(2.1rem, 4.8vw, 4rem); line-height: 1.08; letter-spacing: -0.045em; }
+.v2-site :is(.section-heading h2, .section-heading-row h2, .staff-heading h2) { letter-spacing: -0.035em; }
+.v2-site .hod-section { background: #fff; }
+.v2-site :is(.gallery-card, .staff-card) { border: 1px solid var(--v2-line); border-radius: 12px; overflow: hidden; }
+.v2-site .gallery-grid { gap: 24px; }
+.v2-site .gallery-card:first-child { grid-column: span 2; }
+.v2-site .gallery-card:first-child .gallery-image { aspect-ratio: 2 / 1; }
+.v2-reveal { opacity: 0; transform: translateY(18px); transition: opacity 600ms ease, transform 600ms ease; }
+.v2-reveal.v2-revealed, .v2-reveal:focus-within { opacity: 1; transform: none; }
+
+@media (max-width: 960px) {
+  .v2-site .site-navigation { gap: 18px; }
+  .v2-site .header-container { gap: 20px; }
+}
+@media (max-width: 760px) {
+  .v2-site .v2-event-hero { min-height: auto; }
+  .v2-site .v2-event-hero::after { width: 50%; inset: 16px 16px 16px auto; }
+  .v2-site .v2-event-hero .event-hero-inner { padding-block: 58px 110px; }
+  .v2-site .site-navigation a::after { bottom: 2px; }
+  .v2-site .gallery-card:first-child { grid-column: auto; }
+  .v2-site .gallery-card:first-child .gallery-image { aspect-ratio: 4 / 3; }
+  .v2-hero-controls { left: 16px; right: 16px; bottom: 24px; }
+  .v2-hero-caption { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has(.v2-site) { scroll-behavior: auto; }
+  .v2-site *, .v2-site *::before, .v2-site *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .v2-reveal { opacity: 1; transform: none; }
+}
+@media (forced-colors: active) {
+  html:has(.v2-site) { scrollbar-color: auto; }
+  .v2-scroll-progress { display: none; }
+  .v2-hero-controls button { border-color: ButtonText; }
+}

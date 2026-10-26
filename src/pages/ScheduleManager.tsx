@@ -149,7 +149,8 @@ function ScheduleManager() {
   };
 
   useEffect(() => {
-    void loadPrograms();
+    const request = window.setTimeout(() => { void loadPrograms(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   const handleInputChange = (

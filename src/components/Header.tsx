@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import dwuLogo from "../assets/Divine_Word_University_logo.png";
 import mcsLogo from "../assets/MCS-logo2.png";
@@ -7,12 +7,19 @@ function Header() {
   const [menuOpen, setMenuOpen] =
     useState(false);
 
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
   const closeMenu = () => {
     setMenuOpen(false);
   };
 
   return (
-    <header className="site-header">
+    <header className="site-header" onKeyDown={(event) => {
+      if (event.key === "Escape" && menuOpen) {
+        closeMenu();
+        menuButtonRef.current?.focus();
+      }
+    }}>
       <div className="header-container">
         <a
           href="#home"
@@ -34,7 +41,9 @@ function Header() {
         </a>
 
         <button
+          ref={menuButtonRef}
           type="button"
+          aria-controls="public-navigation"
           className={`mobile-menu-button ${
             menuOpen ? "is-open" : ""
           }`}
@@ -54,6 +63,7 @@ function Header() {
         </button>
 
         <nav
+          id="public-navigation"
           className={`site-navigation ${
             menuOpen ? "is-open" : ""
           }`}

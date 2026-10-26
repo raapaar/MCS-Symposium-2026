@@ -151,6 +151,8 @@ function EventManager() {
             ...eventForm
           } = loadedEvent;
 
+          // The Firestore document id is not part of the editable form.
+          void _id;
           setForm(eventForm);
         }
       } catch (loadError) {

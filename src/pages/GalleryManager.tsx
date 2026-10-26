@@ -107,7 +107,8 @@ function GalleryManager() {
   }
 
   useEffect(() => {
-    void loadGallery();
+    const request = window.setTimeout(() => { void loadGallery(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   function handleChange(

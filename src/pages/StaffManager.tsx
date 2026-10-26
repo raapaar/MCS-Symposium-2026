@@ -125,7 +125,8 @@ function StaffManager() {
   }
 
   useEffect(() => {
-    void loadStaff();
+    const request = window.setTimeout(() => { void loadStaff(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   function handleChange(

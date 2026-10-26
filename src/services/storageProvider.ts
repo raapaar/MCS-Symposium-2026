@@ -35,7 +35,6 @@ const storageProvider: StorageService = {
   async uploadFile(
     file: File,
     folder: string,
-    _fileName?: string,
   ): Promise<UploadResult> {
     const token = await getAdminToken();
 

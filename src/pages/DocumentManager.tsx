@@ -105,7 +105,8 @@ function DocumentManager() {
   }
 
   useEffect(() => {
-    void loadDocuments();
+    const request = window.setTimeout(() => { void loadDocuments(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   function handleChange(

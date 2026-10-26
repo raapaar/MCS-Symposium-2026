@@ -169,7 +169,8 @@ function SponsorManager() {
   }
 
   useEffect(() => {
-    void loadSponsors();
+    const request = window.setTimeout(() => { void loadSponsors(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   function handleChange(

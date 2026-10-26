@@ -86,7 +86,8 @@ function AnnouncementManager() {
   };
 
   useEffect(() => {
-    void loadAnnouncements();
+    const request = window.setTimeout(() => { void loadAnnouncements(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   const handleInputChange = (

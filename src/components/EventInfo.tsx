@@ -9,6 +9,7 @@ import {
 import { db } from "../services/firebase";
 import type { EventInfo as EventInfoType } from "../types/event";
 import SponsorLogos from "./SponsorLogos";
+import HeroBackdrop from "./HeroBackdrop";
 
 interface Countdown {
   days: number;
@@ -304,7 +305,7 @@ function EventInfo() {
             "Pacific/Port_Moresby",
         },
       ).format(date);
-    }, [event?.eventDate]);
+    }, [event]);
 
   const formattedTime =
     useMemo(() => {
@@ -337,10 +338,7 @@ function EventInfo() {
             "Pacific/Port_Moresby",
         },
       ).format(date);
-    }, [
-      event?.eventDate,
-      event?.eventStartTime,
-    ]);
+    }, [event]);
 
   const whatsappUrl =
     useMemo(() => {
@@ -364,10 +362,7 @@ function EventInfo() {
         );
 
       return `https://wa.me/${digits}?text=${message}`;
-    }, [
-      event?.whatsappNumber,
-      event?.title,
-    ]);
+    }, [event]);
 
   if (loading || !event) {
     return null;
@@ -377,21 +372,10 @@ function EventInfo() {
     <>
       {/* Dynamic Event Hero */}
       <section
-        className="event-hero"
-        style={
-          event.heroImageUrl
-            ? {
-                backgroundImage: `linear-gradient(
-                  110deg,
-                  rgba(45, 0, 12, 0.94),
-                  rgba(115, 0, 30, 0.82),
-                  rgba(35, 0, 9, 0.88)
-                ),
-                url("${event.heroImageUrl}")`,
-              }
-            : undefined
-        }
+        className="event-hero v2-event-hero"
+        aria-label={event.title || "MCS Symposium 2026"}
       >
+        <HeroBackdrop imageUrl={event.heroImageUrl} />
         <div className="event-hero-inner">
           <p className="event-hero-eyebrow">
   DIVINE WORD UNIVERSITY

@@ -141,7 +141,8 @@ function PresenterManager() {
   };
 
   useEffect(() => {
-    void loadPresenters();
+    const request = window.setTimeout(() => { void loadPresenters(); }, 0);
+    return () => window.clearTimeout(request);
   }, []);
 
   const handleInputChange = (
