@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import {
   collection,
   getDocs,
@@ -10,6 +11,7 @@ import { db } from "../services/firebase";
 import type { EventInfo as EventInfoType } from "../types/event";
 import SponsorLogos from "./SponsorLogos";
 import HeroBackdrop from "./HeroBackdrop";
+import { useAppearance } from "../v2/appearanceState";
 
 interface Countdown {
   days: number;
@@ -86,6 +88,7 @@ function calculateCountdown(
 }
 
 function EventInfo() {
+  const appearance = useAppearance();
   const [event, setEvent] =
     useState<EventInfoType | null>(null);
 
@@ -340,30 +343,6 @@ function EventInfo() {
       ).format(date);
     }, [event]);
 
-  const whatsappUrl =
-    useMemo(() => {
-      if (!event?.whatsappNumber) {
-        return "";
-      }
-
-      const digits =
-        event.whatsappNumber.replace(
-          /\D/g,
-          "",
-        );
-
-      if (!digits) {
-        return "";
-      }
-
-      const message =
-        encodeURIComponent(
-          `Hello, I would like to enquire about ${event.title || "MCS Symposium 2026"}.`,
-        );
-
-      return `https://wa.me/${digits}?text=${message}`;
-    }, [event]);
-
   if (loading || !event) {
     return null;
   }
@@ -376,11 +355,13 @@ function EventInfo() {
         aria-label={event.title || "MCS Symposium 2026"}
       >
         <HeroBackdrop imageUrl={event.heroImageUrl} />
+        <div className="frontier-hero-word" style={{ "--word-length": Math.max(7, appearance.heroWord.length) } as CSSProperties} aria-hidden="true">{appearance.heroWord}</div>
         <div className="event-hero-inner">
           <p className="event-hero-eyebrow">
   DIVINE WORD UNIVERSITY
 </p>
 
+          <p className="frontier-edition">MATHEMATICS × COMPUTING SCIENCE</p>
           <h1>
             {event.title ||
               "MCS Symposium 2026"}
@@ -619,41 +600,6 @@ function EventInfo() {
         </section>
       )}
 
-      {/* WhatsApp CTA */}
-      {whatsappUrl && (
-         <section
-    id="whatsapp-contact"
-    className="event-whatsapp-cta"
-  >
-          <div className="content-container event-whatsapp-inner">
-            <div>
-              <p className="section-label">
-                SYMPOSIUM ENQUIRIES
-              </p>
-
-              <h2>
-                Have a Question?
-              </h2>
-
-              <p>
-                Chat with the Mathematics
-                and Computing Science
-                Department about the
-                symposium.
-              </p>
-            </div>
-
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="button event-whatsapp-button"
-            >
-              Chat on WhatsApp
-            </a>
-          </div>
-        </section>
-      )}
     </>
   );
 }

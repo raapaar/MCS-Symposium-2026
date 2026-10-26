@@ -38,18 +38,18 @@ function AdminLogin() {
 
       if (!userSnapshot.exists()) {
         await signOut(auth);
-        throw new Error("This account is not authorized as an administrator.");
+        throw new Error("This account is not authorized for staff access.");
       }
 
       const userData = userSnapshot.data();
 
-      if (userData.role !== "admin") {
+      if (userData.active === false || !["admin", "staff", "superuser"].includes(userData.role)) {
         await signOut(auth);
-        throw new Error("This account is not authorized as an administrator.");
+        throw new Error("This account is not authorized for staff access.");
       }
 
 setSuccess(true);
-window.location.href = "/admin/dashboard";
+window.location.href = userData.role === "superuser" ? "/superuser" : "/staff";
       
     } catch (err) {
       if (err instanceof Error) {
@@ -68,7 +68,7 @@ window.location.href = "/admin/dashboard";
         <div className="admin-login-card">
           <p className="section-eyebrow">MCS Symposium 2026</p>
 
-          <h1>Administrator Login</h1>
+          <h1>Staff & Superuser Sign In</h1>
 
           <p className="admin-login-intro">
             Sign in to manage symposium content, schedules,

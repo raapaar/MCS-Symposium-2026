@@ -6,7 +6,7 @@ import {
 
 import {
   collection,
-  getDocs,
+  onSnapshot,
   query,
   where,
 } from "firebase/firestore";
@@ -100,13 +100,7 @@ function Schedule() {
     useState("");
 
   useEffect(() => {
-    const loadPublishedPrograms =
-      async () => {
-        setLoading(true);
-        setError("");
-
-        try {
-          const scheduleQuery = query(
+    const scheduleQuery = query(
             collection(db, "schedule"),
             where(
               "published",
@@ -114,13 +108,8 @@ function Schedule() {
               true,
             ),
           );
-
-          const snapshot =
-            await getDocs(
-              scheduleQuery,
-            );
-
-          const loadedPrograms: LoadedScheduleItem[] =
+    return onSnapshot(scheduleQuery, (snapshot) => {
+      const loadedPrograms: LoadedScheduleItem[] =
             snapshot.docs
               .map((scheduleDoc) => {
                 const data =
@@ -184,16 +173,9 @@ function Schedule() {
           setPrograms(
             loadedPrograms,
           );
-        } catch {
-          setError(
-            "The symposium schedule is currently unavailable.",
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
-
-    void loadPublishedPrograms();
+      setError("");
+      setLoading(false);
+    }, () => { setError("The symposium schedule is currently unavailable."); setLoading(false); });
   }, []);
 
   /*

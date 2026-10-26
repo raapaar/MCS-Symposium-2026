@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   collection,
-  getDocs,
+  onSnapshot,
   query,
   where,
 } from "firebase/firestore";
@@ -18,21 +18,12 @@ function Announcements() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadPublishedAnnouncements = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const announcementsQuery = query(
+    const announcementsQuery = query(
           collection(db, "announcements"),
           where("published", "==", true),
         );
-
-        const snapshot = await getDocs(
-          announcementsQuery,
-        );
-
-        const loadedAnnouncements: Announcement[] =
+    return onSnapshot(announcementsQuery, (snapshot) => {
+      const loadedAnnouncements: Announcement[] =
           snapshot.docs.map((announcementDoc) => {
             const data = announcementDoc.data();
 
@@ -53,16 +44,9 @@ function Announcements() {
         );
 
         setAnnouncements(loadedAnnouncements);
-      } catch {
-        setError(
-          "Announcement information is currently unavailable.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadPublishedAnnouncements();
+      setError("");
+      setLoading(false);
+    }, () => { setError("Announcement information is currently unavailable."); setLoading(false); });
   }, []);
 
   return (

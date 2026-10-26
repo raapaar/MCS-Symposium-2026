@@ -1,0 +1,4 @@
+# Optional, server-side Cloudflare analytics. Supply a token limited to analytics read.
+# Never put these values in VITE_ variables or Firestore documents.
+ANALYTICS_ZONE_ID=
+ANALYTICS_API_TOKEN=

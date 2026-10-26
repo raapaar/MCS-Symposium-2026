@@ -10,12 +10,18 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "r2_buckets": [
     {
       "bucket_name": "mcs-symposium-2026-media",
       "binding": "mcs_symposium_2026_media"
+    },
+    {
+      "bucket_name": "mcs-symposium-2026-receipts",
+      "binding": "PRIVATE_RECEIPTS"
     }
   ]
 }

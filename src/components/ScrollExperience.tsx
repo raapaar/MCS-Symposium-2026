@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
+import { useAppearance } from "../v2/appearanceState";
 import { useMotionPreference } from "../hooks/useMotionPreference";
 
 /** Progressive enhancement: native scroll and anchors remain in control. */
 export default function ScrollExperience() {
   const progressRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useMotionPreference();
+  const { motion } = useAppearance();
 
   useEffect(() => {
     let frame = 0;
@@ -31,7 +33,7 @@ export default function ScrollExperience() {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || typeof IntersectionObserver === "undefined") return;
+    if (reducedMotion || !motion || typeof IntersectionObserver === "undefined") return;
     const main = document.getElementById("main-content");
     if (!main) return;
     const targets = new Set<Element>();
@@ -61,7 +63,7 @@ export default function ScrollExperience() {
       mutations.disconnect();
       targets.forEach((element) => element.classList.remove("v2-reveal", "v2-revealed"));
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, motion]);
 
   return <div className="v2-scroll-progress" aria-hidden="true"><div ref={progressRef} /></div>;
 }

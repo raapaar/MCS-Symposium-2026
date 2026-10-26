@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useMotionPreference } from "../hooks/useMotionPreference";
+import frontierArt from "../assets/v2-frontier.webp";
+import { useAppearance } from "../v2/appearanceState";
 
 interface Slide {
   image: string;
@@ -12,6 +14,7 @@ const rotationInterval = 6000;
 
 /** Public images only; a failed gallery request leaves the admin banner intact. */
 export default function HeroBackdrop({ imageUrl }: { imageUrl: string }) {
+  const appearance = useAppearance();
   const [gallery, setGallery] = useState<Slide[]>([]);
   const [failedImages, setFailedImages] = useState<string[]>([]);
   const [index, setIndex] = useState(0);
@@ -24,8 +27,9 @@ export default function HeroBackdrop({ imageUrl }: { imageUrl: string }) {
   const reducedMotion = useMotionPreference();
 
   const slides = [
+    { image: appearance.heroImageUrl || frontierArt, label: "The frontier of ideas" },
     ...(imageUrl ? [{ image: imageUrl, label: "Symposium banner" }] : []),
-    ...gallery,
+    ...(appearance.useGallery ? gallery : []),
   ].filter((slide, position, all) =>
     !failedImages.includes(slide.image) &&
     all.findIndex((item) => item.image === slide.image) === position,
@@ -67,14 +71,14 @@ export default function HeroBackdrop({ imageUrl }: { imageUrl: string }) {
   }, []);
 
   useEffect(() => {
-    if (slides.length < 2 || paused || reducedMotion || hovered || focused || !visible || !inView || document.hidden) return;
-    const interval = window.setInterval(() => setIndex((current) => current + 1), rotationInterval);
+    if (slides.length < 2 || paused || reducedMotion || !appearance.motion || hovered || focused || !visible || !inView || document.hidden) return;
+    const interval = window.setInterval(() => setIndex((current) => current + 1), Math.max(rotationInterval, appearance.rotationSeconds * 1000));
     return () => window.clearInterval(interval);
-  }, [slides.length, paused, reducedMotion, hovered, focused, visible, inView]);
+  }, [slides.length, paused, reducedMotion, hovered, focused, visible, inView, appearance.motion, appearance.rotationSeconds]);
 
   return (
     <div ref={stageRef} className="v2-hero-stage">
-      <div className="v2-hero-backdrops" aria-hidden="true">
+      <div className="v2-hero-backdrops frontier-hero-art" aria-hidden="true">
         {slides.map((slide, position) => (
           <img
             key={slide.image}
@@ -112,7 +116,7 @@ export default function HeroBackdrop({ imageUrl }: { imageUrl: string }) {
             setIndex(activeIndex + 1);
             setPaused(true);
           }}>→</button>
-          {!reducedMotion && (
+          {!reducedMotion && appearance.motion && (
             <button type="button" onClick={() => setPaused((current) => !current)}>
               {paused ? "Resume" : "Pause"}
             </button>

@@ -35,11 +35,11 @@ export async function verifyFirebaseToken(
   return payload as FirebaseUser;
 }
 
-export async function verifyAdminRole(
+export async function getFirebaseRole(
   token: string,
   projectId: string,
   uid: string,
-): Promise<boolean> {
+): Promise<string> {
   const documentUrl =
     `https://firestore.googleapis.com/v1/projects/` +
     `${projectId}/databases/(default)/documents/users/` +
@@ -58,16 +58,21 @@ export async function verifyAdminRole(
       response.status,
     );
 
-    return false;
+    return "customer";
   }
 
   const document = await response.json() as {
     fields?: {
+      active?: { booleanValue?: boolean };
       role?: {
         stringValue?: string;
       };
     };
   };
 
-  return document.fields?.role?.stringValue === "admin";
+  if (document.fields?.active?.booleanValue === false) return "customer";
+  return document.fields?.role?.stringValue || "customer";
+}
+export async function verifyAdminRole(token: string, projectId: string, uid: string): Promise<boolean> {
+  return ["admin", "staff", "superuser"].includes(await getFirebaseRole(token, projectId, uid));
 }

@@ -6,13 +6,12 @@ import {
 
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
+import "./styles/control.css";
+import { ProtectedArea } from "./v2/Session";
+const ControlPortal = lazy(() => import("./v2/ControlPortal"));
 
 const AdminLogin = lazy(
   () => import("./pages/AdminLogin"),
-);
-
-const AdminDashboard = lazy(
-  () => import("./pages/AdminDashboard"),
 );
 
 const ScheduleManager = lazy(
@@ -163,7 +162,7 @@ function App() {
       currentPath ===
       "/admin/dashboard"
     ) {
-      return <AdminDashboard />;
+      return <ControlPortal />;
     }
 
     if (
@@ -174,6 +173,10 @@ function App() {
 
     return null;
   };
+
+  if (currentPath === "/staff" || currentPath === "/superuser") {
+    return <Suspense fallback={<p>Loading workspace…</p>}><ProtectedArea ownerOnly={currentPath === "/superuser"}><ControlPortal owner={currentPath === "/superuser"} /></ProtectedArea></Suspense>;
+  }
 
   const isAdminRoute =
     currentPath.startsWith(
@@ -187,7 +190,7 @@ function App() {
           <div>Loading...</div>
         }
       >
-        {renderAdminPage()}
+        <div className="frontier-legacy-admin">{currentPath === "/admin" ? renderAdminPage() : <ProtectedArea>{renderAdminPage()}</ProtectedArea>}</div>
       </Suspense>
     );
   }

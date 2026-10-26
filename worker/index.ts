@@ -1,12 +1,12 @@
+import { handleReceipt, handleAnalytics } from "./receipts";
 import {
   verifyAdminRole,
   verifyFirebaseToken,
 } from "./auth";
 
-interface Env {
-  mcs_symposium_2026_media: R2Bucket;
-  ASSETS: Fetcher;
-  FIREBASE_PROJECT_ID: string;
+export interface Env extends CloudflareEnv {
+  ANALYTICS_ZONE_ID?: string;
+  ANALYTICS_API_TOKEN?: string;
 }
 
 const ALLOWED_FOLDERS = new Set([
@@ -16,6 +16,7 @@ const ALLOWED_FOLDERS = new Set([
   "documents",
   "staff",
   "branding",
+  "merchandise",
 ]);
 
 
@@ -427,6 +428,12 @@ export default {
     env: Env,
   ): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/receipts/")) {
+      return handleReceipt(request, env, url.pathname.slice("/api/receipts/".length));
+    }
+    if (url.pathname === "/api/analytics") {
+      return request.method === "GET" ? handleAnalytics(request, env) : new Response("Method not allowed", { status: 405 });
+    }
 
     /*
      * Public API health check.

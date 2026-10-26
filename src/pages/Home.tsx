@@ -6,6 +6,9 @@ import Presenters from "../components/Presenters";
 import Schedule from "../components/Schedule";
 import Sponsors from "../components/Sponsors";
 import Staff from "../components/Staff";
+import Store from "../v2/Store";
+import Contact from "../v2/Contact";
+import { ExperienceMap, LiveSpotlight } from "../v2/Frontier";
 
 function Home() {
   return (
@@ -19,6 +22,8 @@ function Home() {
        * - HOD welcome
        */}
       <EventInfo />
+      <LiveSpotlight />
+      <ExperienceMap />
 
       {/*
        * Presenters.tsx renders keynote speakers
@@ -39,10 +44,12 @@ function Home() {
       <Sponsors />
 
       {/* Gallery */}
+      <Store />
       <Gallery />
 
       {/* Documents */}
       <Documents />
+      <Contact />
     </>
   );
 }
