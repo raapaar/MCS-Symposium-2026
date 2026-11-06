@@ -1,736 +1,150 @@
-import {
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-
-import { db } from "../services/firebase";
-
-import type {
-  Presenter,
-  PresenterScreenshot,
-  SpeakerType,
-} from "../types/presenter";
-
-function Presenters() {
-  const [presenters, setPresenters] = useState<
-    Presenter[]
-  >([]);
-
-  const [selectedPresenter, setSelectedPresenter] =
-    useState<Presenter | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const loadPublishedPresenters = async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const presentersQuery = query(
-          collection(db, "presenters"),
-          where("published", "==", true),
-        );
-
-        const snapshot =
-          await getDocs(presentersQuery);
-
-        const loadedPresenters: Presenter[] =
-          snapshot.docs
-            .map((presenterDoc) => {
-              const data =
-                presenterDoc.data();
-
-              const speakerType: SpeakerType =
-                data.speakerType === "keynote"
-                  ? "keynote"
-                  : data.speakerType === "guest"
-                    ? "guest"
-                    : "presenter";
-
-              const screenshots: PresenterScreenshot[] =
-                Array.isArray(data.screenshots)
-                  ? data.screenshots
-                      .filter(
-                        (
-                          screenshot: unknown,
-                        ): screenshot is {
-                          url?: unknown;
-                          path?: unknown;
-                        } =>
-                          typeof screenshot ===
-                            "object" &&
-                          screenshot !== null,
-                      )
-                      .map((screenshot) => ({
-                        url:
-                          typeof screenshot.url ===
-                          "string"
-                            ? screenshot.url
-                            : "",
-                        path:
-                          typeof screenshot.path ===
-                          "string"
-                            ? screenshot.path
-                            : "",
-                      }))
-                      .filter(
-                        (screenshot) =>
-                          Boolean(screenshot.url),
-                      )
-                  : [];
-
-              return {
-                id: presenterDoc.id,
-                name: data.name ?? "",
-                role: data.role ?? "",
-                category:
-                  data.category ?? "",
-                speakerType,
-                topic: data.topic ?? "",
-                biography:
-                  data.biography ?? "",
-                projectDescription:
-                  data.projectDescription ?? "",
-                projectUrl:
-                  data.projectUrl ?? "",
-                imageUrl:
-                  data.imageUrl ?? "",
-                imagePath:
-                  data.imagePath ?? "",
-                screenshots,
-                linkedinUrl:
-                  data.linkedinUrl ?? "",
-                order: Number(
-                  data.order ?? 0,
-                ),
-                published:
-                  data.published === true,
-              };
-            })
-            .sort(
-              (a, b) =>
-                a.order - b.order,
-            );
-
-        setPresenters(loadedPresenters);
-      } catch (loadError) {
-        console.error(
-          "Unable to load presenters:",
-          loadError,
-        );
-
-        setError(
-          "Presenter information is currently unavailable.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadPublishedPresenters();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedPresenter) {
-      return;
-    }
-
-    const previousOverflow =
-      document.body.style.overflow;
-
-    document.body.style.overflow =
-      "hidden";
-
-    const handleKeyDown = (
-      event: KeyboardEvent,
-    ) => {
-      if (event.key === "Escape") {
-        setSelectedPresenter(null);
-      }
-    };
-
-    window.addEventListener(
-      "keydown",
-      handleKeyDown,
-    );
-
-    return () => {
-      document.body.style.overflow =
-        previousOverflow;
-
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown,
-      );
-    };
-  }, [selectedPresenter]);
-
-  const keynoteSpeakers =
-    presenters.filter(
-      (presenter) =>
-        presenter.speakerType ===
-        "keynote",
-    );
-
-  const guestSpeakers =
-    presenters.filter(
-      (presenter) =>
-        presenter.speakerType ===
-        "guest",
-    );
-
-  const symposiumPresenters =
-    presenters.filter(
-      (presenter) =>
-        presenter.speakerType ===
-        "presenter",
-    );
-
-  const getSpeakerLabel = (
-    presenter: Presenter,
-  ) => {
-    if (
-      presenter.speakerType ===
-      "keynote"
-    ) {
-      return "Keynote Speaker";
-    }
-
-    if (
-      presenter.speakerType ===
-      "guest"
-    ) {
-      return "Guest Speaker";
-    }
-
-    return (
-      presenter.category ||
-      "Presenter"
-    );
-  };
-
-  const getPresentationLabel = (
-    presenter: Presenter,
-  ) => {
-    if (
-      presenter.speakerType ===
-      "keynote"
-    ) {
-      return "Keynote Presentation";
-    }
-
-    if (
-      presenter.speakerType ===
-      "guest"
-    ) {
-      return "Guest Presentation";
-    }
-
-    return "Project / Presentation";
-  };
-
-  const renderPresenterCard = (
-    presenter: Presenter,
-  ) => {
-    const isKeynote =
-      presenter.speakerType ===
-      "keynote";
-
-    const isGuest =
-      presenter.speakerType ===
-      "guest";
-
-    const isFeaturedSpeaker =
-      isKeynote || isGuest;
-
-    return (
-      <article
-        className={`presenter-card ${
-          isFeaturedSpeaker
-            ? "presenter-card-keynote"
-            : "presenter-card-project"
-        }`}
-        key={presenter.id}
-      >
-        <div className="presenter-image-placeholder">
-          {presenter.imageUrl ? (
-            <img
-              src={presenter.imageUrl}
-              alt={presenter.name}
-              loading="lazy"
-            />
-          ) : (
-            <div className="presenter-placeholder-content">
-              <span
-                className="presenter-placeholder-icon"
-                aria-hidden="true"
-              >
-                MCS
-              </span>
-
-              <span>
-                {getSpeakerLabel(
-                  presenter,
-                )}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="presenter-content">
-          <div className="presenter-card-main">
-            <div className="presenter-card-labels">
-              <span className="presenter-category">
-                {getSpeakerLabel(
-                  presenter,
-                )}
-              </span>
-            </div>
-
-            <h3>{presenter.name}</h3>
-
-            <div className="presenter-role-space">
-              {presenter.role && (
-                <p className="presenter-role">
-                  {presenter.role}
-                </p>
-              )}
-            </div>
-
-            <div className="presenter-topic-space">
-              {presenter.topic && (
-                <div className="presenter-topic-block">
-                  <span className="presenter-topic-label">
-                    {getPresentationLabel(
-                      presenter,
-                    )}
-                  </span>
-
-                  <p className="presenter-topic">
-                    {presenter.topic}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="presenter-card-actions">
-            {!isFeaturedSpeaker && (
-              <button
-                type="button"
-                className="button button-primary presenter-view-button"
-                onClick={() =>
-                  setSelectedPresenter(
-                    presenter,
-                  )
-                }
-              >
-                View Project
-              </button>
-            )}
-
-            {presenter.linkedinUrl && (
-              <a
-                href={
-                  presenter.linkedinUrl
-                }
-                className="presenter-linkedin"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`View ${presenter.name}'s LinkedIn profile`}
-              >
-                LinkedIn
-
-                <span
-                  aria-hidden="true"
-                  className="presenter-link-arrow"
-                >
-                  ↗
-                </span>
-              </a>
-            )}
-          </div>
-        </div>
-      </article>
-    );
-  };
-
+import { useState } from "react";
+import { useLiveCollection } from "../hooks/useLiveCollection";
+import type { Presenter, SpeakerType } from "../types/presenter";
+import DetailDialog from "../v2/DetailDialog";
+const groups: [SpeakerType, string][] = [
+  ["keynote", "Keynote Speakers"],
+  ["guest", "Guest Speakers"],
+  ["presenter", "Student Presenters"],
+];
+const safeLink = (url: string | undefined) =>
+  !!url && /^https?:\/\//i.test(url);
+export default function Presenters() {
+  const { items, loading, error } = useLiveCollection<Presenter>("presenters");
+  const [selected, select] = useState<Presenter | null>(null);
   return (
-    <>
-      {loading && (
-        <section className="content-section presenters-section">
-          <div className="content-container">
-            <div className="schedule-message">
-              Loading symposium
-              presenters...
-            </div>
-          </div>
-        </section>
-      )}
-
-      {error && (
-        <section className="content-section presenters-section">
-          <div className="content-container">
-            <div className="schedule-message schedule-message-error">
-              {error}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <div
-        id="keynote-speakers"
-        className="section-scroll-anchor"
-        aria-hidden="true"
-      />
-
-      {!loading &&
-        !error &&
-        (keynoteSpeakers.length > 0 ||
-          guestSpeakers.length >
-            0) && (
-          <section className="content-section keynote-section">
-            <div className="content-container">
-              <div className="section-heading-row">
-                <div>
-                  <p className="section-label">
-                    KEYNOTE &amp; GUEST
-                    SPEAKERS
-                  </p>
-
-                  <h2>
-                    Symposium Speakers
-                  </h2>
-
-                  <p>
-                    Meet the invited
-                    keynote and guest
-                    speakers sharing
-                    expertise, research,
-                    and industry
-                    perspectives at the
-                    MCS Symposium 2026.
-                  </p>
-                </div>
-              </div>
-
-              {keynoteSpeakers.length >
-                0 && (
-                <div className="speaker-group">
-                  <div className="speaker-group-heading">
-                    <p className="section-label">
-                      KEYNOTE SPEAKERS
-                    </p>
-
-                    <h3>
-                      Keynote Speakers
-                    </h3>
-                  </div>
-
-                  <div className="presenter-grid keynote-grid">
-                    {keynoteSpeakers.map(
-                      renderPresenterCard,
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {guestSpeakers.length >
-                0 && (
-                <div className="guest-speaker-group">
-                  <div className="guest-speaker-heading">
-                    <p className="section-label">
-                      GUEST SPEAKERS
-                    </p>
-
-                    <h3>
-                      Guest Speakers
-                    </h3>
-                  </div>
-
-                  <div className="presenter-grid keynote-grid">
-                    {guestSpeakers.map(
-                      renderPresenterCard,
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-      {!loading && !error && (
-        <section
-          id="presenters"
-          className="content-section presenters-section"
-        >
-          <div className="content-container">
-            <div className="section-heading-row">
-              <div>
-                <p className="section-label">
-                  PRESENTERS
-                </p>
-
-                <h2>
-                  Meet the Symposium
-                  Presenters
-                </h2>
-
-                <p>
-                  Discover the academics,
-                  researchers, students,
-                  industry professionals,
-                  and invited guests
-                  contributing to the MCS
-                  Symposium 2026.
-                </p>
-              </div>
-            </div>
-
-            {symposiumPresenters.length ===
-              0 && (
-              <div className="schedule-message">
-                Presenter information
-                will be published here
-                once presenters are
-                confirmed.
-              </div>
-            )}
-
-            {symposiumPresenters.length >
-              0 && (
-              <div className="presenter-grid">
-                {symposiumPresenters.map(
-                  renderPresenterCard,
-                )}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {selectedPresenter && (
-        <div
-          className="presenter-modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (
-              event.target ===
-              event.currentTarget
-            ) {
-              setSelectedPresenter(
-                null,
-              );
-            }
-          }}
-        >
+    <section id="presenters" className="content-section poster-section">
+      <div className="content-container">
+        <p className="section-label">PEOPLE / IDEAS / IMPACT</p>
+        <h2>Meet the minds.</h2>
+        {loading && <p>Loading speakers and presenters…</p>}
+        {error && <p role="alert">{error}</p>}
+        {groups.map(([type, label]) => (
           <div
-            className="presenter-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="presenter-modal-title"
+            key={type}
+            id={type === "keynote" ? "keynote-speakers" : `${type}-speakers`}
+            className={`poster-group poster-${type}`}
           >
-            <button
-              type="button"
-              className="presenter-modal-close"
-              aria-label="Close presenter details"
-              onClick={() =>
-                setSelectedPresenter(
-                  null,
-                )
-              }
-            >
-              ×
-            </button>
-
-            <div className="presenter-modal-header">
-              <div className="presenter-modal-profile">
-                <div className="presenter-modal-image">
-                  {selectedPresenter.imageUrl ? (
-                    <img
-                      src={
-                        selectedPresenter.imageUrl
-                      }
-                      alt={
-                        selectedPresenter.name
-                      }
-                    />
-                  ) : (
-                    <div className="presenter-placeholder-content">
-                      <span
-                        className="presenter-placeholder-icon"
-                        aria-hidden="true"
-                      >
-                        MCS
+            <h3>{label}</h3>
+            <div className="poster-grid">
+              {items
+                .filter((p) => (p.speakerType || "presenter") === type)
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
+                .map((p) => (
+                  <article key={p.id} className="speaker-poster">
+                    <button
+                      className="poster-open"
+                      onClick={() => select(p)}
+                      aria-label={`View ${p.name}'s ${type === "presenter" ? "project" : "speaker"} details`}
+                    >
+                      <span className="poster-kicker">
+                        MCS /{" "}
+                        {type === "presenter"
+                          ? "STUDENT PROJECT"
+                          : `${type.toUpperCase()} SPEAKER`}
                       </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="presenter-modal-person">
-                  <span className="presenter-category">
-                    {getSpeakerLabel(
-                      selectedPresenter,
+                      <strong className="poster-topic">
+                        {p.topic || label}
+                      </strong>
+                      <span className="poster-photo">
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt={p.name} loading="lazy" />
+                        ) : (
+                          <span>MCS</span>
+                        )}
+                      </span>
+                      <span className="poster-person">
+                        <strong>{p.name}</strong>
+                        <span>{p.role || label}</span>
+                      </span>
+                      <span className="poster-expand">Explore details ↗</span>
+                    </button>
+                    {safeLink(p.linkedinUrl) && (
+                      <a
+                        className="poster-linkedin"
+                        href={p.linkedinUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        LinkedIn ↗
+                      </a>
                     )}
-                  </span>
-
-                  <h2 id="presenter-modal-title">
-                    {
-                      selectedPresenter.name
-                    }
-                  </h2>
-
-                  {selectedPresenter.role && (
-                    <p className="presenter-role">
-                      {
-                        selectedPresenter.role
-                      }
-                    </p>
-                  )}
-                </div>
-              </div>
+                  </article>
+                ))}
             </div>
-
-            <div className="presenter-modal-body">
-              {selectedPresenter.topic && (
-                <section className="presenter-modal-section">
-                  <p className="presenter-topic-label">
-                    {getPresentationLabel(
-                      selectedPresenter,
-                    )}
-                  </p>
-
-                  <h3>
-                    {
-                      selectedPresenter.topic
-                    }
-                  </h3>
-                </section>
+            {!loading &&
+              !error &&
+              !items.some((p) => (p.speakerType || "presenter") === type) && (
+                <p>Details will appear when published.</p>
               )}
-
-              {selectedPresenter.projectDescription && (
-                <section className="presenter-modal-section">
-                  <h3>
-                    {selectedPresenter.speakerType ===
-                    "presenter"
-                      ? "Project Details"
-                      : "Presentation Details"}
-                  </h3>
-
-                  <p className="presenter-modal-description">
-                    {
-                      selectedPresenter.projectDescription
-                    }
-                  </p>
-                </section>
-              )}
-
-              {selectedPresenter.biography && (
-                <section className="presenter-modal-section">
-                  <h3>
-                    About{" "}
-                    {
-                      selectedPresenter.name
-                    }
-                  </h3>
-
-                  <p className="presenter-modal-description">
-                    {
-                      selectedPresenter.biography
-                    }
-                  </p>
-                </section>
-              )}
-
-              {selectedPresenter.screenshots
-                .length > 0 && (
-                <section className="presenter-modal-section">
-                  <h3>
-                    {selectedPresenter.speakerType ===
-                    "presenter"
-                      ? "Project Screenshots"
-                      : "Presentation Gallery"}
-                  </h3>
-
-                  <div className="presenter-screenshot-grid">
-                    {selectedPresenter.screenshots.map(
-                      (
-                        screenshot,
-                        index,
-                      ) => (
-                        <a
-                          key={`${screenshot.path}-${index}`}
-                          href={
-                            screenshot.url
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="presenter-screenshot-link"
-                        >
-                          <img
-                            src={
-                              screenshot.url
-                            }
-                            alt={`${selectedPresenter.name} ${
-                              selectedPresenter.speakerType ===
-                              "presenter"
-                                ? "project"
-                                : "presentation"
-                            } screenshot ${index + 1}`}
-                            loading="lazy"
-                          />
-                        </a>
-                      ),
-                    )}
-                  </div>
-                </section>
-              )}
-
-              <div className="presenter-modal-actions">
-                {selectedPresenter.projectUrl && (
-                  <a
-                    href={
-                      selectedPresenter.projectUrl
-                    }
-                    className="button button-primary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {selectedPresenter.speakerType ===
-                    "presenter"
-                      ? "Visit Project"
-                      : "Open Presentation Link"}
-                  </a>
-                )}
-
-                {selectedPresenter.linkedinUrl && (
-                  <a
-                    href={
-                      selectedPresenter.linkedinUrl
-                    }
-                    className="button button-secondary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    LinkedIn ↗
-                  </a>
-                )}
-              </div>
-            </div>
           </div>
-        </div>
-      )}
-    </>
+        ))}
+        {selected && (
+          <DetailDialog
+            title={`${selected.name} details`}
+            close={() => select(null)}
+          >
+            <div
+              className={`speaker-landscape poster-${selected.speakerType || "presenter"}`}
+            >
+              <div className="landscape-copy">
+                <p className="section-label">
+                  {groups.find(([t]) => t === selected.speakerType)?.[1] ||
+                    "Student Presenter"}
+                </p>
+                <h2>{selected.topic || selected.name}</h2>
+                <h3>{selected.name}</h3>
+                <p>{selected.role}</p>
+                <p>{selected.biography}</p>
+                <p>{selected.projectDescription}</p>
+                {safeLink(selected.linkedinUrl) && (
+                  <a
+                    href={selected.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    LinkedIn profile ↗
+                  </a>
+                )}
+                {safeLink(selected.projectUrl) && (
+                  <a
+                    href={selected.projectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Explore project ↗
+                  </a>
+                )}
+                {selected.projectLogoUrl && (
+                  <img
+                    className="project-logo"
+                    src={selected.projectLogoUrl}
+                    alt={`${selected.topic || selected.name} project logo`}
+                  />
+                )}
+              </div>
+              <div className="landscape-photo">
+                {selected.imageUrl && (
+                  <img src={selected.imageUrl} alt={selected.name} />
+                )}
+              </div>
+            </div>
+            {!!selected.screenshots?.length && (
+              <div className="project-screenshots">
+                {selected.screenshots.map((s, i) => (
+                  <figure key={s.url}>
+                    <img
+                      src={s.url}
+                      alt={`${selected.topic} project screenshot ${i + 1}`}
+                      loading="lazy"
+                    />
+                  </figure>
+                ))}
+              </div>
+            )}
+          </DetailDialog>
+        )}
+      </div>
+    </section>
   );
 }
-
-export default Presenters;

@@ -631,7 +631,7 @@ body:has(.frontier) {
   min-height: 470px;
   background:
     linear-gradient(90deg, #111120, #11112055),
-    url("../assets/v2-frontier.webp") center 42% / cover;
+    var(--frontier-feature-image) center 42% / cover;
 }
 .tile-programme {
   background: radial-gradient(ellipse at 90% 80%, #524169, #11111a 65%);

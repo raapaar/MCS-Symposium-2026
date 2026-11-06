@@ -25,13 +25,14 @@ const token = async (uid) =>
     .sign(privateKey);
 const tokens = Object.fromEntries(
   await Promise.all(
-    ["buyer", "other", "staff", "owner", "suspended"].map(async (uid) => [
+    ["buyer", "other", "staff", "owner", "suspended", "editor"].map(async (uid) => [
       uid,
       await token(uid),
     ]),
   ),
 );
 let order = {
+  createdAt: { timestampValue: new Date().toISOString() },
   ownerId: { stringValue: "buyer" },
   status: { stringValue: "confirmed" },
   receiptPath: { stringValue: "" },
@@ -52,11 +53,12 @@ globalThis.fetch = async (input, init) => {
           stringValue:
             uid === "owner"
               ? "superuser"
-              : uid === "staff" || uid === "suspended"
+              : uid === "staff" || uid === "suspended" || uid === "editor"
                 ? "staff"
                 : "customer",
         },
         active: { booleanValue: uid !== "suspended" },
+        permissions: {arrayValue:{values:[{stringValue:uid === "editor" ? "gallery" : "orders"}]}},
       },
     });
   throw Error("Unexpected external request: " + url);
@@ -124,6 +126,7 @@ try {
     ),
     false,
   );
+  assert.equal((await handleReceipt(request("editor"), env, "booking")).status,403,"content staff cannot read private proof");
   const pdf = new File(["%PDF-1.4\nQA receipt"], "proof.pdf", {
     type: "application/pdf",
   });
@@ -137,6 +140,9 @@ try {
     409,
   );
   order.status.stringValue = "confirmed";
+  order.createdAt.timestampValue = new Date(Date.now() - 86400001).toISOString();
+  assert.equal((await handleReceipt(request("buyer", "POST", pdf), env, "booking")).status,409,"expired receipts must be rejected");
+  order.createdAt.timestampValue = new Date().toISOString();
   const upload = await handleReceipt(
     request("buyer", "POST", pdf),
     env,

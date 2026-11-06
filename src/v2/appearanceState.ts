@@ -1,5 +1,8 @@
 import { createContext, useContext } from "react";
 export interface Appearance {
+  featureImageUrl: string;
+  dwuLogoUrl: string;
+  mcsLogoUrl: string;
   accent: string;
   surface: string;
   heroImageUrl: string;
@@ -10,6 +13,9 @@ export interface Appearance {
   useGallery: boolean;
 }
 export const defaultAppearance: Appearance = {
+  featureImageUrl: "",
+  dwuLogoUrl: "",
+  mcsLogoUrl: "",
   accent: "#dfff00",
   surface: "#dfdff0",
   heroImageUrl: "",

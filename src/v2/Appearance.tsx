@@ -13,6 +13,23 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
           const d = snapshot.data();
           if (!d) return;
           setAppearance({
+            featureImageUrl:
+              typeof d.featureImageUrl === "string" &&
+              /^(https:\/\/|\/api\/storage\/file\/branding)/.test(
+                d.featureImageUrl,
+              )
+                ? d.featureImageUrl
+                : "",
+            dwuLogoUrl:
+              typeof d.dwuLogoUrl === "string" &&
+              /^(https:\/\/|\/api\/storage\/file\/branding)/.test(d.dwuLogoUrl)
+                ? d.dwuLogoUrl
+                : "",
+            mcsLogoUrl:
+              typeof d.mcsLogoUrl === "string" &&
+              /^(https:\/\/|\/api\/storage\/file\/branding)/.test(d.mcsLogoUrl)
+                ? d.mcsLogoUrl
+                : "",
             accent: /^#[a-f0-9]{6}$/i.test(d.accent)
               ? d.accent
               : defaultAppearance.accent,
@@ -21,7 +38,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
               : defaultAppearance.surface,
             heroImageUrl:
               typeof d.heroImageUrl === "string" &&
-              /^https:\/\//.test(d.heroImageUrl)
+              /^(https:\/\/|\/api\/storage\/file\/branding)/.test(
+                d.heroImageUrl,
+              )
                 ? d.heroImageUrl
                 : "",
             heroWord:

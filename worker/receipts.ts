@@ -1,4 +1,4 @@
-import { getFirebaseRole, verifyFirebaseToken } from "./auth.ts";
+import { getFirebaseRole, verifyFirebaseToken, verifySection } from "./auth.ts";
 import type { Env } from "./index";
 
 const maximumBody = 6 * 1024 * 1024;
@@ -74,7 +74,10 @@ export async function handleReceipt(
         response.status === 404 ? 404 : 403,
       );
     const data = (await response.json()) as {
-      fields?: Record<string, { stringValue?: string }>;
+      fields?: Record<
+        string,
+        { stringValue?: string; timestampValue?: string }
+      >;
     };
     const ownerId = data.fields?.ownerId?.stringValue;
     const status = data.fields?.status?.stringValue;
@@ -82,7 +85,22 @@ export async function handleReceipt(
     const role = own
       ? "customer"
       : await getFirebaseRole(token, env.FIREBASE_PROJECT_ID, user.sub!);
-    if (!own && !["staff", "admin", "superuser"].includes(role))
+    if (
+      !own &&
+      (!["staff", "admin", "superuser"].includes(role) ||
+        (!(await verifySection(
+          token,
+          env.FIREBASE_PROJECT_ID,
+          user.sub!,
+          "orders",
+        )) &&
+          !(await verifySection(
+            token,
+            env.FIREBASE_PROJECT_ID,
+            user.sub!,
+            "payments",
+          ))))
+    )
       return fail("Access denied.", 403);
     if (!env.PRIVATE_RECEIPTS)
       return fail("Private receipt storage is not configured.", 503);
@@ -94,6 +112,9 @@ export async function handleReceipt(
           "Wait for staff confirmation before submitting proof.",
           409,
         );
+      const created = Date.parse(data.fields?.createdAt?.timestampValue || "");
+      if (!Number.isFinite(created) || Date.now() >= created + 86400000)
+        return fail("This 24-hour reservation has expired.", 409);
       let form: FormData;
       try {
         form = await boundedForm(request);

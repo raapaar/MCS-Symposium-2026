@@ -19,6 +19,7 @@ export type OrderStatus =
   | "cancelled";
 export interface StoreOrder {
   id: string;
+  createdAt?: { toMillis: () => number };
   ownerId: string;
   productId: string;
   productTitle: string;
@@ -51,3 +52,17 @@ export function bookingTotal(price: number, quantity: number) {
   return price * quantity;
 }
 export const statusLabel = (status: string) => status.replaceAll("_", " ");
+
+export function reservationExpires(order: StoreOrder) {
+  return order.createdAt?.toMillis()
+    ? order.createdAt.toMillis() + 24 * 60 * 60 * 1000
+    : null;
+}
+export function reservationExpired(order: StoreOrder, now = Date.now()) {
+  const end = reservationExpires(order);
+  return (
+    end !== null &&
+    now >= end &&
+    ["requested", "confirmed", "rejected"].includes(order.status)
+  );
+}

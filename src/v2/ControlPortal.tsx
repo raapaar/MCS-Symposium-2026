@@ -1,3 +1,8 @@
+import { lazy, Suspense, useEffect } from "react";
+import { canEdit, sectionPermissions } from "./sessionState";
+import { reservationExpired } from "./storeModel";
+import ProgrammeControlPanel from "./ProgrammeControlPanel";
+import EnquiryManager from "./EnquiryManager";
 import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { initializeApp, deleteApp } from "firebase/app";
@@ -216,7 +221,13 @@ function OrderManager() {
   const { items, error } = useLiveCollection<StoreOrder>("storeOrders", false);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState("");
-  const { user } = useSession();
+  const { user, role, permissions } = useSession();
+  const finance = canEdit(role, permissions, "payments");
+  const [now, tick] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => tick(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   async function change(order: StoreOrder, status: OrderStatus, note: string) {
     setBusy(order.id);
     try {
@@ -280,7 +291,10 @@ function OrderManager() {
       {items.map((order) => (
         <article className="control-order" key={order.id}>
           <small>
-            {order.id} / {statusLabel(order.status)}
+            {order.id} /{" "}
+            {reservationExpired(order, now)
+              ? "Reservation expired"
+              : statusLabel(order.status)}
           </small>
           <h3>{order.productTitle}</h3>
           <p>
@@ -335,7 +349,15 @@ function OrderManager() {
                 ][])
               : transitions[order.status]
             )?.map(([status, label]) => (
-              <button key={status} value={status} disabled={busy === order.id}>
+              <button
+                key={status}
+                value={status}
+                disabled={
+                  busy === order.id ||
+                  (reservationExpired(order, now) && status !== "cancelled") ||
+                  (["paid", "rejected"].includes(status) && !finance)
+                }
+              >
                 {label}
               </button>
             ))}
@@ -353,6 +375,9 @@ function AppearanceEditor() {
     const data = new FormData(event.currentTarget);
     try {
       await setDoc(doc(db, "siteSettings", "appearance"), {
+        featureImageUrl: String(data.get("featureImageUrl")).trim(),
+        dwuLogoUrl: String(data.get("dwuLogoUrl")).trim(),
+        mcsLogoUrl: String(data.get("mcsLogoUrl")).trim(),
         accent: String(data.get("accent")),
         surface: String(data.get("surface")),
         heroImageUrl: String(data.get("heroImageUrl")).trim(),
@@ -394,12 +419,68 @@ function AppearanceEditor() {
             />
           </label>
         </div>
+        {["heroImageUrl", "featureImageUrl", "dwuLogoUrl", "mcsLogoUrl"].map(
+          (field) => (
+            <div key={field}>
+              <label>
+                {field === "heroImageUrl"
+                  ? "Upload hero artwork"
+                  : field === "featureImageUrl"
+                    ? "Upload feature card artwork"
+                    : field === "dwuLogoUrl"
+                      ? "Upload DWU logo"
+                      : "Upload MCS logo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    const form = e.currentTarget.form;
+                    if (!file || !form) return;
+                    if (file.size > 5 * 1024 * 1024) {
+                      setMessage("Choose an image under 5 MB.");
+                      return;
+                    }
+                    void storage
+                      .uploadFile(file, "branding")
+                      .then((result) => {
+                        const input = form.elements.namedItem(
+                          field,
+                        ) as HTMLInputElement;
+                        input.value = result.url;
+                        setMessage(
+                          "Image uploaded. Save appearance to publish it.",
+                        );
+                      })
+                      .catch(() => setMessage("Image upload failed."));
+                  }}
+                />
+              </label>
+              {field !== "heroImageUrl" && (
+                <label>
+                  Image URL
+                  <input
+                    name={field}
+                    type="text"
+                    pattern="https://.*|/api/storage/file/branding.*"
+                    maxLength={2000}
+                    defaultValue={
+                      appearance[
+                        field as "dwuLogoUrl" | "mcsLogoUrl" | "featureImageUrl"
+                      ]
+                    }
+                  />
+                </label>
+              )}
+            </div>
+          ),
+        )}
         <label>
           Hero artwork URL
           <input
             name="heroImageUrl"
-            type="url"
-            pattern="https://.*"
+            type="text"
+            pattern="https://.*|/api/storage/file/branding.*"
             maxLength={2000}
             defaultValue={appearance.heroImageUrl}
             placeholder="Leave empty for the original frontier artwork"
@@ -456,6 +537,7 @@ function AppearanceEditor() {
 interface Account {
   id: string;
   role: string;
+  permissions?: string[];
   email?: string;
   active?: boolean;
 }
@@ -484,6 +566,7 @@ function AccountManager() {
       createdUid = credential.user.uid;
       await setDoc(doc(db, "users", createdUid), {
         role: "staff",
+        permissions: data.getAll("permissions").map(String),
         email: credential.user.email || "",
         active: true,
       });
@@ -520,6 +603,36 @@ function AccountManager() {
               {account.active === false ? "Suspended" : "Active"}
             </span>
             {account.id !== user?.uid && account.role !== "superuser" && (
+              <form
+                className="control-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const data = new FormData(e.currentTarget);
+                  void updateDoc(doc(db, "users", account.id), {
+                    permissions: data.getAll("permissions").map(String),
+                  })
+                    .then(() => setMessage("Section privileges saved."))
+                    .catch(() => setMessage("Unable to save privileges."));
+                }}
+              >
+                <fieldset>
+                  <legend>Section privileges</legend>
+                  {sectionPermissions.map((p) => (
+                    <label className="control-check" key={p}>
+                      <input
+                        type="checkbox"
+                        name="permissions"
+                        value={p}
+                        defaultChecked={account.permissions?.includes(p)}
+                      />
+                      {p}
+                    </label>
+                  ))}
+                </fieldset>
+                <button>Save privileges</button>
+              </form>
+            )}
+            {account.id !== user?.uid && account.role !== "superuser" && (
               <button
                 onClick={() => {
                   void updateDoc(doc(db, "users", account.id), {
@@ -553,6 +666,15 @@ function AccountManager() {
             autoComplete="new-password"
           />
         </label>
+        <fieldset>
+          <legend>Assigned sections</legend>
+          {sectionPermissions.map((p) => (
+            <label className="control-check" key={p}>
+              <input type="checkbox" name="permissions" value={p} />
+              {p}
+            </label>
+          ))}
+        </fieldset>
         <button disabled={busy}>
           {busy ? "Creating…" : "Create staff account"}
         </button>
@@ -767,49 +889,49 @@ function Statistics() {
     </>
   );
 }
+
+const sectionManagers: Record<string, ReturnType<typeof lazy>> = {
+  event: lazy(() => import("../pages/EventManager")),
+  presenters: lazy(() => import("../pages/PresenterManager")),
+  schedule: lazy(() => import("../pages/ScheduleManager")),
+  announcements: lazy(() => import("../pages/AnnouncementManager")),
+  gallery: lazy(() => import("../pages/GalleryManager")),
+  documents: lazy(() => import("../pages/DocumentManager")),
+  staff: lazy(() => import("../pages/StaffManager")),
+  sponsors: lazy(() => import("../pages/SponsorManager")),
+};
 export default function ControlPortal({ owner = false }: { owner?: boolean }) {
-  const { user } = useSession();
-  const [tab, setTab] = useState("content");
-  const tabs = owner
-    ? [
-        ["content", "Content"],
-        ["merchandise", "Merchandise"],
-        ["orders", "Bookings & proof"],
-        ["appearance", "Appearance"],
-        ["accounts", "Staff accounts"],
-        ["statistics", "Statistics"],
-        ["services", "Domain & services"],
-        ["handover", "Handover"],
-      ]
-    : [
-        ["content", "Content"],
-        ["merchandise", "Merchandise"],
-        ["orders", "Bookings & proof"],
-      ];
+  const { user, role, permissions } = useSession();
+  const [tab, setTab] = useState("");
+  const allowed = (section: string) => canEdit(role, permissions, section);
+  const tabs = [
+    ...contentLinks
+      .filter(([id]) => allowed(id))
+      .map(([id, title]) => [id, title]),
+    ...(allowed("enquiries") ? [["enquiries", "Enquiry knowledge"]] : []),
+    ...(allowed("merchandise") ? [["merchandise", "Merchandise"]] : []),
+    ...(allowed("orders") || allowed("payments")
+      ? [["orders", "Bookings & proof"]]
+      : []),
+    ...(allowed("appearance") ? [["appearance", "Appearance & images"]] : []),
+    ...(owner
+      ? [
+          ["accounts", "Staff accounts"],
+          ["statistics", "Statistics"],
+          ["services", "Domain & services"],
+          ["handover", "Handover"],
+        ]
+      : []),
+  ];
+  const current = tabs.some(([id]) => id === tab) ? tab : tabs[0]?.[0];
+  const Manager = current ? sectionManagers[current] : undefined;
   const pages: Record<string, ReactNode> = {
-    content: (
-      <>
-        <p className="control-eyebrow">YOUR WORKSPACE</p>
-        <h2>Make the symposium happen.</h2>
-        <p>
-          Choose what you want to update. Published announcements, programme
-          changes and merchandise appear live.
-        </p>
-        <div className="control-content-grid">
-          {contentLinks.map(([path, title, description]) => (
-            <a key={path} href={`/admin/${path}`}>
-              <span>{title} ↗</span>
-              <p>{description}</p>
-            </a>
-          ))}
-        </div>
-      </>
-    ),
     merchandise: <ProductManager />,
     orders: <OrderManager />,
+    appearance: <AppearanceEditor />,
+    enquiries: <EnquiryManager />,
     ...(owner
       ? {
-          appearance: <AppearanceEditor />,
           accounts: <AccountManager />,
           statistics: <Statistics />,
           services: <OwnershipRegister />,
@@ -828,7 +950,7 @@ export default function ControlPortal({ owner = false }: { owner?: boolean }) {
           {tabs.map(([id, label]) => (
             <button
               key={id}
-              aria-current={tab === id ? "page" : undefined}
+              aria-current={current === id ? "page" : undefined}
               onClick={() => setTab(id)}
             >
               {label}
@@ -839,21 +961,29 @@ export default function ControlPortal({ owner = false }: { owner?: boolean }) {
         <div className="control-identity">
           <small>{user?.email}</small>
           <a href="/">View website ↗</a>
-          <button
-            onClick={() => {
-              void signOut(auth);
-            }}
-          >
-            Sign out
-          </button>
+          <button onClick={() => void signOut(auth)}>Sign out</button>
         </div>
       </aside>
-      <main key={tab}>
+      <main key={current}>
         <header>
           <span>{owner ? "OWNERSHIP / SYSTEM" : "SYMPOSIUM / OPERATIONS"}</span>
           <a href="/">Public site ↗</a>
         </header>
-        <div className="control-workspace">{pages[tab]}</div>
+        <div className="control-workspace">
+          {current === "schedule" && <ProgrammeControlPanel />}
+          {Manager ? (
+            <Suspense fallback={<p>Loading editor…</p>}>
+              <Manager />
+            </Suspense>
+          ) : (
+            pages[current || ""] || (
+              <p>
+                No sections are assigned to this account. Ask the superuser to
+                grant the required privileges.
+              </p>
+            )
+          )}
+        </div>
       </main>
     </div>
   );

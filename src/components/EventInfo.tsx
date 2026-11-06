@@ -416,13 +416,8 @@ function EventInfo() {
           </div>
 
        {event.eventDate &&
-  event.eventStartTime && (
+  event.eventStartTime && !countdown.started && (
     <div className="event-countdown">
-      {countdown.started ? (
-        <div className="event-live-message">
-          The Symposium Is Underway
-        </div>
-      ) : (
         <>
           <div className="countdown-heading">
             Symposium Begins In
@@ -460,7 +455,6 @@ function EventInfo() {
             <SponsorLogos mode="gold" />
           </div>
         </>
-      )}
     </div>
   )}
         </div>

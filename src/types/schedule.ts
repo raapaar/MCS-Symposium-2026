@@ -8,6 +8,8 @@ export type ScheduleSegment = 1 | 2 | 3 | 4;
 export interface ScheduleItem {
   id: string;
   time: string;
+  startsAt?: string;
+  endsAt?: string;
   type: string;
   title: string;
   description: string;

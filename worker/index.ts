@@ -1,6 +1,7 @@
 import { handleReceipt, handleAnalytics } from "./receipts";
 import {
   verifyAdminRole,
+  verifySection,
   verifyFirebaseToken,
 } from "./auth";
 
@@ -242,6 +243,14 @@ function extractObjectKey(
   }
 }
 
+
+async function folderAllowed(request: Request, env: Env, folder: string): Promise<boolean> {
+ const token=getBearerToken(request); if(!token)return false;
+ const user=await verifyFirebaseToken(token,env.FIREBASE_PROJECT_ID);
+ const section=folder === 'branding' ? 'appearance' : folder;
+ return await verifySection(token,env.FIREBASE_PROJECT_ID,user.sub!,section) || (folder === 'branding' && await verifySection(token,env.FIREBASE_PROJECT_ID,user.sub!,'event'));
+}
+
 async function handleUpload(
   request: Request,
   env: Env,
@@ -293,6 +302,7 @@ async function handleUpload(
     );
   }
 
+  if (!(await folderAllowed(request, env, folderValue))) return Response.json({error:"No privilege for this image section."},{status:403});
   const validationError =
     validateUpload(
       fileValue,
@@ -398,6 +408,7 @@ async function handleDeleteFile(
     return admin.response!;
   }
 
+  if (!(await folderAllowed(request, env, key.split('/')[0]))) return Response.json({error:"No privilege for this image section."},{status:403});
   const existing =
     await env.mcs_symposium_2026_media.head(
       key,

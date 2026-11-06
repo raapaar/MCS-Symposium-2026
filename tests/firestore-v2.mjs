@@ -15,6 +15,7 @@ import {
   updateDoc,
   deleteField,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 const env = await initializeTestEnvironment({
   projectId: "demo-mcs-v2",
@@ -76,6 +77,7 @@ try {
         role: "staff",
         active: true,
         email: "staff@example.invalid",
+        permissions: ["orders","payments","merchandise"],
       }),
       setDoc(doc(db, "users", "owner-user"), {
         role: "superuser",
@@ -89,6 +91,27 @@ try {
       setDoc(doc(db, "merchandise", "draft"), { ...product, published: false }),
     ]);
   });
+
+  // Privileges are enforced independently of the UI and payment verification is finance-only.
+  const editor = env.authenticatedContext("editor").firestore();
+  await env.withSecurityRulesDisabled(async ctx => {
+    const db=ctx.firestore();
+    await setDoc(doc(db,"users","editor"),{role:"staff",active:true,permissions:["gallery","orders","schedule"]});
+    await setDoc(doc(db,"storeOrders","expired"),order({status:"confirmed",createdAt:Timestamp.fromMillis(Date.now()-86401000),updatedAt:Timestamp.now()}));
+    await setDoc(doc(db,"storeOrders","finance"),order({status:"awaiting_verification",receiptPath:"receipts/buyer/finance/11111111-1111-4111-8111-111111111111"}));
+  });
+  await assertSucceeds(setDoc(doc(editor,"gallery","allowed"),{published:false,image:"https://test.invalid/a.png"}));
+  await assertFails(setDoc(doc(editor,"presenters","denied"),{published:true,name:"No"}));
+  await assertFails(updateDoc(doc(editor,"users","editor"),{permissions:["payments"]}));
+  await assertSucceeds(setDoc(doc(editor,"siteSettings","programme"),{mode:"manual",activeSegment:2}));
+  await assertFails(setDoc(doc(editor,"siteSettings","programme"),{mode:"manual",activeSegment:99}));
+  await assertFails(setDoc(doc(editor,"siteSettings","appearance"),appearance));
+  await assertFails(updateDoc(doc(editor,"storeOrders","finance"),{status:"paid",reviewedBy:"editor",updatedAt:serverTimestamp()}));
+  await assertFails(updateDoc(doc(customer,"storeOrders","expired"),{status:"awaiting_verification",receiptPath:"receipts/buyer/expired/11111111-1111-4111-8111-111111111111",updatedAt:serverTimestamp()}));
+  await assertFails(updateDoc(doc(staff,"storeOrders","expired"),{status:"confirmed",reviewedBy:"staff-user",updatedAt:serverTimestamp()}));
+  await assertFails(setDoc(doc(owner,"users","invalid-permissions"),{role:"staff",permissions:["unknown"]}));
+  await assertSucceeds(setDoc(doc(owner,"siteSettings","appearance"),{...appearance,heroImageUrl:"/api/storage/file/branding%2Fhero.png",featureImageUrl:"https://example.invalid/feature.png",dwuLogoUrl:"",mcsLogoUrl:""}));
+
   await assertSucceeds(
     getDocs(
       query(collection(guest, "merchandise"), where("published", "==", true)),

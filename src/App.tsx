@@ -6,6 +6,7 @@ import {
 
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
+import { StorePage } from "./v2/Store";
 import "./styles/control.css";
 import { ProtectedArea } from "./v2/Session";
 const ControlPortal = lazy(() => import("./v2/ControlPortal"));
@@ -60,7 +61,7 @@ function App() {
     }
 
     const storageKey =
-      "mcs-symposium-scroll-position";
+      `mcs-symposium-scroll-position:${window.location.pathname}`;
 
     const savedPosition =
       sessionStorage.getItem(storageKey);
@@ -190,14 +191,14 @@ function App() {
           <div>Loading...</div>
         }
       >
-        <div className="frontier-legacy-admin">{currentPath === "/admin" ? renderAdminPage() : <ProtectedArea>{renderAdminPage()}</ProtectedArea>}</div>
+        <div className="frontier-legacy-admin">{currentPath === "/admin" ? renderAdminPage() : <ProtectedArea section={currentPath === "/admin/dashboard" ? undefined : currentPath.split("/")[2]}>{renderAdminPage()}</ProtectedArea>}</div>
       </Suspense>
     );
   }
 
   return (
     <MainLayout>
-      <Home />
+      {currentPath.startsWith("/store") ? <StorePage /> : <Home />}
     </MainLayout>
   );
 }

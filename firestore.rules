@@ -16,13 +16,22 @@ service cloud.firestore {
         ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : 'customer';
     }
     function staff() { return role() in ['admin', 'staff', 'superuser']; }
+    // Staff permissions are assigned only by the superuser. Missing permissions grant no sections.
+    function permit(section) {
+      return role() in ['admin','superuser'] || (role() == 'staff'
+        && section in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('permissions', []));
+    }
+    function orderStaff() { return permit('orders') || permit('payments'); }
+    function reservationOpen(d) { return d.createdAt is timestamp && request.time < d.createdAt + duration.value(24, 'h'); }
     function owner() { return role() == 'superuser'; }
     function text(value, size) { return value is string && value.size() <= size; }
     function userValid(d) {
-      return d.keys().hasAll(['role']) && d.keys().hasOnly(['role','email','active'])
+      return d.keys().hasAll(['role']) && d.keys().hasOnly(['role','email','active','permissions'])
         && d.role in ['admin','staff','superuser']
         && (!('email' in d) || text(d.email,254))
-        && (!('active' in d) || d.active is bool);
+        && (!('active' in d) || d.active is bool)
+        && (!('permissions' in d) || (d.permissions is list && d.permissions.size() <= 13
+          && d.permissions.toSet().hasOnly(['event','presenters','schedule','announcements','gallery','documents','staff','sponsors','merchandise','orders','payments','appearance','enquiries'])));
     }
     match /users/{uid} {
       allow read: if (signedIn() && request.auth.uid == uid) || owner();
@@ -34,9 +43,9 @@ service cloud.firestore {
     }
     match /{content}/{id} {
       allow read: if content in ['event','schedule','presenters','announcements','documents','gallery','sponsors','staff']
-        && (resource.data.published == true || staff());
+        && (resource.data.published == true || permit(content));
       // Preserve existing manager schemas and functionality. New domains below use strict validators.
-      allow write: if content in ['event','schedule','presenters','announcements','documents','gallery','sponsors','staff'] && staff();
+      allow write: if content in ['event','schedule','presenters','announcements','documents','gallery','sponsors','staff'] && permit(content);
     }
     function productValid(d) {
       return d.keys().hasAll(['title','description','category','image','priceCents','published','available','paymentInstructions'])
@@ -48,8 +57,8 @@ service cloud.firestore {
         && d.published is bool && d.available is bool && text(d.paymentInstructions,2000);
     }
     match /merchandise/{id} {
-      allow read: if resource.data.published == true || staff();
-      allow create, update: if staff() && productValid(request.resource.data);
+      allow read: if resource.data.published == true || permit('merchandise');
+      allow create, update: if permit('merchandise') && productValid(request.resource.data);
       allow delete: if false;
     }
     function locationValid(value) {
@@ -88,7 +97,7 @@ service cloud.firestore {
         || (before == 'confirmed' && amount == 0 && after == 'fulfilled');
     }
     match /storeOrders/{id} {
-      allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || staff();
+      allow read: if (signedIn() && resource.data.ownerId == request.auth.uid) || orderStaff();
       allow create: if signedIn() && id.matches('[A-Za-z0-9_-]{1,128}') && orderValid(request.resource.data,id)
         && request.resource.data.ownerId == request.auth.uid && pricedBooking(request.resource.data)
         && request.resource.data.status == 'requested' && request.resource.data.receiptPath == ''
@@ -96,25 +105,51 @@ service cloud.firestore {
       allow update: if signedIn() && orderValid(request.resource.data,id)
         && ((resource.data.ownerId == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['receiptPath','status','updatedAt'])
-          && resource.data.status in ['confirmed','rejected'] && request.resource.data.status == 'awaiting_verification'
+          && reservationOpen(resource.data) && resource.data.status in ['confirmed','rejected'] && request.resource.data.status == 'awaiting_verification'
           && request.resource.data.receiptPath != '')
-        || (staff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewNote','reviewedBy','updatedAt'])
+        || (orderStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewNote','reviewedBy','updatedAt'])
           && request.resource.data.reviewedBy == request.auth.uid
           && staffTransition(resource.data.status,request.resource.data.status,resource.data.totalCents)
+          && (request.resource.data.status == 'cancelled' || resource.data.status in ['awaiting_verification','paid'] || reservationOpen(resource.data))
+          && (!(request.resource.data.status in ['paid','rejected']) || permit('payments'))
           && (request.resource.data.status != 'paid' || resource.data.receiptPath != '')));
       allow delete: if false;
     }
     function appearanceValid(d) {
       return d.keys().hasAll(['accent','surface','heroImageUrl','heroWord','motion','layout','rotationSeconds','useGallery'])
-        && d.keys().hasOnly(['accent','surface','heroImageUrl','heroWord','motion','layout','rotationSeconds','useGallery'])
+        && d.keys().hasOnly(['accent','surface','heroImageUrl','heroWord','motion','layout','rotationSeconds','useGallery','dwuLogoUrl','mcsLogoUrl','featureImageUrl'])
+        && text(d.get('featureImageUrl',''),2000) && (d.get('featureImageUrl','') == '' || d.featureImageUrl.matches('https://.*') || d.featureImageUrl.matches('/api/storage/file/branding.*'))
+        && text(d.get('dwuLogoUrl',''),2000) && (d.get('dwuLogoUrl','') == '' || d.dwuLogoUrl.matches('https://.*') || d.dwuLogoUrl.matches('/api/storage/file/branding.*'))
+        && text(d.get('mcsLogoUrl',''),2000) && (d.get('mcsLogoUrl','') == '' || d.mcsLogoUrl.matches('https://.*') || d.mcsLogoUrl.matches('/api/storage/file/branding.*'))
         && text(d.accent,7) && d.accent.matches('#[a-fA-F0-9]{6}') && text(d.surface,7) && d.surface.matches('#[a-fA-F0-9]{6}')
-        && text(d.heroImageUrl,2000) && (d.heroImageUrl == '' || d.heroImageUrl.matches('https://.*'))
+        && text(d.heroImageUrl,2000) && (d.heroImageUrl == '' || d.heroImageUrl.matches('https://.*') || d.heroImageUrl.matches('/api/storage/file/branding.*'))
         && text(d.heroWord,16) && d.motion is bool && d.useGallery is bool
         && d.layout in ['spacious','compact'] && d.rotationSeconds is int && d.rotationSeconds >= 6 && d.rotationSeconds <= 30;
     }
     match /siteSettings/appearance {
       allow read: if true; // Explicitly public visual settings; never store secrets here.
-      allow create, update: if owner() && appearanceValid(request.resource.data);
+      allow create, update: if permit('appearance') && appearanceValid(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Published FAQ: question<=200, answer<=4000, published bool; section staff writes.
+    function enquiryValid(d) {
+      return d.keys().hasAll(['question','answer','published']) && d.keys().hasOnly(['question','answer','published'])
+        && text(d.question,200) && d.question.size()>0 && text(d.answer,4000) && d.answer.size()>0 && d.published is bool;
+    }
+    match /enquiries/{id} {
+      allow read: if resource.data.published == true || permit('enquiries');
+      allow create, update: if permit('enquiries') && enquiryValid(request.resource.data);
+      allow delete: if false;
+    }
+    // Public event progress; manual activeSegment=0 before / 1..4 live / 5 finished.
+    function programmeValid(d) {
+      return d.keys().hasAll(['mode','activeSegment']) && d.keys().hasOnly(['mode','activeSegment'])
+        && d.mode in ['auto','manual'] && d.activeSegment is int && d.activeSegment>=0 && d.activeSegment<=5;
+    }
+    match /siteSettings/programme {
+      allow read: if true;
+      allow create, update: if permit('schedule') && programmeValid(request.resource.data);
       allow delete: if false;
     }
     function registerValid(d) {

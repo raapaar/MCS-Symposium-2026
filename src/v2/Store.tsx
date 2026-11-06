@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -6,7 +6,7 @@ import {
   signOut,
 } from "firebase/auth";
 import {
-  addDoc,
+  writeBatch,
   collection,
   doc,
   serverTimestamp,
@@ -16,7 +16,13 @@ import { auth, db } from "../services/firebase";
 import { useLiveCollection } from "../hooks/useLiveCollection";
 import { useSession } from "./sessionState";
 import type { Product, StoreOrder } from "./storeModel";
-import { bookingTotal, money, statusLabel } from "./storeModel";
+import {
+  bookingTotal,
+  money,
+  statusLabel,
+  reservationExpired,
+  reservationExpires,
+} from "./storeModel";
 
 function CustomerSignIn() {
   const [register, setRegister] = useState(false);
@@ -109,10 +115,19 @@ function MyOrders({
     false,
     ownerId,
   );
+  const [now, tick] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => tick(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   async function upload(order: StoreOrder, file: File | undefined) {
     if (!file || !auth.currentUser) return;
+    if (reservationExpired(order)) {
+      setMessage("This reservation has expired. Please place a new booking.");
+      return;
+    }
     if (
       !["image/jpeg", "image/png", "application/pdf"].includes(file.type) ||
       file.size > 5 * 1024 * 1024
@@ -198,15 +213,31 @@ function MyOrders({
               {order.quantity} × {money(order.unitCents)} ·{" "}
               {money(order.totalCents)}
             </p>
-            <span className="store-status">{statusLabel(order.status)}</span>
+            <span className="store-status">
+              {reservationExpired(order, now)
+                ? "Reservation expired"
+                : statusLabel(order.status)}
+            </span>
+            {reservationExpires(order) &&
+              ["requested", "confirmed", "rejected"].includes(order.status) && (
+                <p>
+                  Reservation deadline:{" "}
+                  {new Date(reservationExpires(order)!).toLocaleString(
+                    "en-GB",
+                    { timeZone: "Pacific/Port_Moresby" },
+                  )}{" "}
+                  PNG time.
+                </p>
+              )}
             {order.reviewNote && <p>{order.reviewNote}</p>}
-            {["confirmed", "rejected"].includes(order.status) && (
-              <p>
-                {products.find((product) => product.id === order.productId)
-                  ?.paymentInstructions ||
-                  "Contact staff for payment instructions."}
-              </p>
-            )}
+            {!reservationExpired(order, now) &&
+              ["confirmed", "rejected"].includes(order.status) && (
+                <p>
+                  {products.find((product) => product.id === order.productId)
+                    ?.paymentInstructions ||
+                    "Contact staff for payment instructions."}
+                </p>
+              )}
           </div>
           {order.receiptPath && (
             <button
@@ -220,20 +251,89 @@ function MyOrders({
               Download your private proof
             </button>
           )}
-          {["confirmed", "rejected"].includes(order.status) && (
-            <label className="receipt-label">
-              {busy === order.id ? "Uploading…" : "Upload payment proof"}
-              <input
-                aria-label={`Payment proof for ${order.productTitle}`}
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                disabled={busy === order.id}
-                onChange={(event) => {
-                  void upload(order, event.target.files?.[0]);
-                }}
-              />
-            </label>
-          )}
+          {!reservationExpired(order, now) &&
+            ["confirmed", "rejected"].includes(order.status) && (
+              <label className="receipt-label">
+                {busy === order.id ? "Uploading…" : "Upload payment proof"}
+                <input
+                  aria-label={`Payment proof for ${order.productTitle}`}
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  disabled={busy === order.id}
+                  onChange={(event) => {
+                    void upload(order, event.target.files?.[0]);
+                  }}
+                />
+              </label>
+            )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+interface CartLine {
+  id: string;
+  quantity: number;
+}
+const cartKey = "mcs-store-cart-v1";
+function readCart(): CartLine[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(cartKey) || "[]");
+    return Array.isArray(value)
+      ? value
+          .filter(
+            (v): v is CartLine =>
+              !!v &&
+              typeof v.id === "string" &&
+              /^[A-Za-z0-9_-]{1,128}$/.test(v.id) &&
+              Number.isInteger(v.quantity) &&
+              v.quantity > 0 &&
+              v.quantity <= 25,
+          )
+          .slice(0, 10)
+      : [];
+  } catch {
+    return [];
+  }
+}
+function ProductCards({
+  products,
+  add,
+}: {
+  products: Product[];
+  add?: (product: Product) => void;
+}) {
+  return (
+    <div className="store-grid">
+      {products.map((p) => (
+        <article className="store-product" key={p.id}>
+          <div className="store-product-image">
+            {p.image ? (
+              <img src={p.image} alt={p.title} loading="lazy" />
+            ) : (
+              <span>
+                MCS
+                <br />
+                EDITION.
+              </span>
+            )}
+            <span>{p.category || "SYMPOSIUM"}</span>
+          </div>
+          <div className="store-product-copy">
+            <h3>{p.title}</h3>
+            <p>{p.description}</p>
+            <div>
+              <strong>{money(p.priceCents)}</strong>
+              {add ? (
+                <button disabled={!p.available} onClick={() => add(p)}>
+                  {p.available ? "Add to cart ↗" : "Unavailable"}
+                </button>
+              ) : (
+                <a href="/store">Explore store ↗</a>
+              )}
+            </div>
+          </div>
         </article>
       ))}
     </div>
@@ -241,266 +341,339 @@ function MyOrders({
 }
 export default function Store() {
   const { items, loading, error } = useLiveCollection<Product>("merchandise");
-  const { user } = useSession();
-  const [selected, setSelected] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [category, setCategory] = useState("All");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [locationMessage, setLocationMessage] = useState("");
-  async function book(event: FormEvent<HTMLFormElement>) {
+  return (
+    <section id="store" className="frontier-store">
+      <div className="section-container">
+        <p className="frontier-kicker">
+          A LITTLE OF THE SYMPOSIUM / TAKE IT WITH YOU
+        </p>
+        <h2>
+          MAKE IT
+          <br />
+          <em>YOURS.</em>
+        </h2>
+        <p>A selection from the symposium store.</p>
+        {loading && <p>Loading merchandise…</p>}
+        {error && <p role="alert">{error}</p>}
+        <ProductCards products={items.slice(0, 3)} />
+        {!loading && !items.length && !error && (
+          <p>The next merchandise drop will appear here when published.</p>
+        )}
+        <a className="frontier-button" href="/store">
+          Visit the store ↗
+        </a>
+      </div>
+    </section>
+  );
+}
+export function StorePage() {
+  const { items, loading, error } = useLiveCollection<Product>("merchandise");
+  const { user, loading: sessionLoading } = useSession();
+  const [cart, setCart] = useState(readCart),
+    [category, setCategory] = useState("All"),
+    [message, setMessage] = useState(""),
+    [busy, setBusy] = useState(false);
+  const page = window.location.pathname.split("/")[2] || "browse";
+  function change(lines: CartLine[]) {
+    setCart(lines);
+    localStorage.setItem(cartKey, JSON.stringify(lines));
+  }
+  const lines = cart.map((line) => ({
+    ...line,
+    product: items.find((p) => p.id === line.id),
+  }));
+  const invalid = lines.some((l) => !l.product?.available);
+  const total = lines.reduce(
+    (sum, l) =>
+      sum + (l.product ? bookingTotal(l.product.priceCents, l.quantity) : 0),
+    0,
+  );
+  async function checkout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!user || !selected) return;
-    const data = new FormData(event.currentTarget);
+    if (!user || busy || invalid || !lines.length || loading || error) return;
     setBusy(true);
     setMessage("");
     try {
-      const totalCents = bookingTotal(selected.priceCents, quantity);
-      await addDoc(collection(db, "storeOrders"), {
-        ownerId: user.uid,
-        productId: selected.id,
-        productTitle: selected.title,
-        unitCents: selected.priceCents,
-        quantity,
-        totalCents,
-        customerName: String(data.get("name")).trim(),
-        contact: String(data.get("contact")).trim(),
-        note: String(data.get("note")).trim(),
-        location,
-        status: "requested",
-        receiptPath: "",
-        reviewNote: "",
-        reviewedBy: "",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      setMessage(
-        "Booking requested. Staff will confirm availability before you pay.",
-      );
-      setSelected(null);
-      setLocation(null);
+      const data = new FormData(event.currentTarget),
+        batch = writeBatch(db);
+      for (const line of lines) {
+        const p = line.product!;
+        batch.set(doc(collection(db, "storeOrders")), {
+          ownerId: user.uid,
+          productId: p.id,
+          productTitle: p.title,
+          unitCents: p.priceCents,
+          quantity: line.quantity,
+          totalCents: bookingTotal(p.priceCents, line.quantity),
+          customerName: String(data.get("name")).trim(),
+          contact: String(data.get("contact")).trim(),
+          note: String(data.get("note")).trim(),
+          location: null,
+          status: "requested",
+          receiptPath: "",
+          reviewNote: "",
+          reviewedBy: "",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      await batch.commit();
+      change([]);
+      window.location.assign("/store/orders");
     } catch {
       setMessage(
-        "Booking could not be submitted. The item or price may have changed; refresh the selection and try again.",
+        "Unable to place this booking. Availability or prices may have changed. Review your cart and try again.",
       );
     } finally {
       setBusy(false);
     }
   }
-  const categories = [
-    "All",
-    ...new Set(items.map((p) => p.category).filter(Boolean)),
-  ];
   return (
-    <section id="store" className="frontier-store">
+    <section className="frontier-store store-page">
       <div className="section-container">
-        <div className="section-heading">
-          <span className="frontier-kicker">
-            THE SYMPOSIUM STORE / MERCHANDISE & BOOKINGS
-          </span>
-          <h2>
-            MAKE IT
-            <br />
-            <em>YOURS.</em>
-          </h2>
-          <p>Carry a piece of the symposium with you.</p>
-        </div>
-        <div className="store-toolbar">
-          <div role="group" aria-label="Merchandise categories">
-            {categories.map((value) => (
-              <button
-                type="button"
-                key={value}
-                aria-pressed={category === value}
-                onClick={() => setCategory(value)}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-          <span className="store-live">
-            <i /> LIVE CATALOGUE
-          </span>
-        </div>
+        <p className="frontier-kicker">THE SYMPOSIUM STORE</p>
+        <h1>
+          {(
+            {
+              browse: "Find your next favourite.",
+              cart: "Your cart.",
+              checkout: "Reserve & checkout.",
+              orders: "Bookings & payment.",
+              login: "Your account.",
+              policies: "How the store works.",
+            } as Record<string, string>
+          )[page] || "Store"}
+        </h1>
+        <nav className="store-page-nav" aria-label="Store pages">
+          {[
+            ["", "Browse"],
+            ["cart", `Cart (${cart.reduce((n, l) => n + l.quantity, 0)})`],
+            ["checkout", "Checkout"],
+            ["orders", "Bookings & payment"],
+            ["login", "Account"],
+            ["policies", "Store policy"],
+          ].map(([path, label]) => (
+            <a
+              key={path}
+              aria-current={page === (path || "browse") ? "page" : undefined}
+              href={`/store${path ? `/${path}` : ""}`}
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+        {message && <p role="status">{message}</p>}
         {loading && <p>Loading merchandise…</p>}
         {error && <p role="alert">{error}</p>}
-        {!loading && !error && !items.length && (
-          <div className="store-empty">
-            <span aria-hidden="true">↗</span>
-            <h3>The next drop starts here.</h3>
-            <p>Merchandise will appear when the symposium team publishes it.</p>
-          </div>
-        )}
-        <div className="store-grid">
-          {items
-            .filter((p) => category === "All" || p.category === category)
-            .map((product) => (
-              <article className="store-product" key={product.id}>
-                <div className="store-product-image">
-                  {product.image ? (
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span aria-hidden="true">
-                      MCS
-                      <br />
-                      EDITION.
-                    </span>
-                  )}
-                  <span>{product.category || "SYMPOSIUM"}</span>
-                </div>
-                <div className="store-product-copy">
-                  <h3>{product.title}</h3>
-                  <p>{product.description}</p>
-                  <div>
-                    <strong>{money(product.priceCents)}</strong>
-                    <button
-                      type="button"
-                      disabled={!product.available}
-                      onClick={() => {
-                        setSelected(product);
-                        setQuantity(1);
-                        setMessage("");
-                      }}
-                    >
-                      {product.available ? "Book now ↗" : "Unavailable"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-        </div>
-        {message && (
-          <p role="status" className="store-feedback">
-            {message}
-          </p>
-        )}
-        {selected && (
-          <div className="store-booking">
-            <div>
-              <small>YOUR SELECTION</small>
-              <h3>{selected.title}</h3>
-              <p>{money(selected.priceCents)} each</p>
-              {!user && <p>Sign in below to continue your booking.</p>}
-            </div>
-            {user && (
-              <form onSubmit={book}>
-                <label>
-                  Name
-                  <input name="name" required maxLength={100} />
-                </label>
-                <label>
-                  Phone or email
-                  <input name="contact" required maxLength={254} />
-                </label>
-                <label>
-                  Quantity
-                  <input
-                    type="number"
-                    min={1}
-                    max={25}
-                    value={quantity}
-                    onChange={(event) =>
-                      setQuantity(Number(event.target.value))
-                    }
-                    required
-                  />
-                </label>
-                <label>
-                  Booking notes
-                  <textarea
-                    name="note"
-                    maxLength={1000}
-                    placeholder="Size, collection preferences, or a question"
-                  />
-                </label>
-                <div className="store-location">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!navigator.geolocation) {
-                        setLocationMessage(
-                          "Location is unavailable. You can continue without it.",
-                        );
-                        return;
-                      }
-                      navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                          setLocation({
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude,
-                          });
-                          setLocationMessage(
-                            "Location attached to this booking.",
-                          );
-                        },
-                        () =>
-                          setLocationMessage(
-                            "Location was not shared. You can continue without it.",
-                          ),
-                        { enableHighAccuracy: false, timeout: 10000 },
-                      );
-                    }}
-                  >
-                    Share location (optional)
-                  </button>
-                  {location && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocation(null);
-                        setLocationMessage("Location removed.");
-                      }}
-                    >
-                      Remove location
-                    </button>
-                  )}
-                  <p role="status">{locationMessage}</p>
-                </div>
-                <p>
-                  Booking total:{" "}
-                  {Number.isInteger(quantity) && quantity >= 1 && quantity <= 25
-                    ? money(selected.priceCents * quantity)
-                    : "Choose a quantity"}
-                </p>
-                <button className="frontier-button" disabled={busy}>
-                  {busy ? "Submitting…" : "Request booking ↗"}
-                </button>
-              </form>
-            )}
-            <button
-              type="button"
-              className="frontier-text-button"
-              onClick={() => setSelected(null)}
-            >
-              Cancel selection
-            </button>
-          </div>
-        )}
-        {user ? (
+        {page === "browse" && (
           <>
+            <div
+              className="store-toolbar"
+              role="group"
+              aria-label="Product categories"
+            >
+              {[
+                "All",
+                ...new Set(items.map((i) => i.category).filter(Boolean)),
+              ].map((c) => (
+                <button
+                  key={c}
+                  aria-pressed={category === c}
+                  onClick={() => setCategory(c)}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <ProductCards
+              products={items.filter(
+                (p) => category === "All" || p.category === category,
+              )}
+              add={(p) => {
+                const existing = cart.find((l) => l.id === p.id);
+                if (
+                  existing?.quantity === 25 ||
+                  (!existing && cart.length >= 10)
+                ) {
+                  setMessage("Your cart has reached its item limit.");
+                  return;
+                }
+                change(
+                  existing
+                    ? cart.map((l) =>
+                        l.id === p.id ? { ...l, quantity: l.quantity + 1 } : l,
+                      )
+                    : [...cart, { id: p.id, quantity: 1 }],
+                );
+                setMessage(`${p.title} added to cart.`);
+              }}
+            />
+            {!loading && !error && !items.length && (
+              <p>No merchandise is published yet.</p>
+            )}
+          </>
+        )}
+        {["cart", "checkout"].includes(page) && (
+          <>
+            {!cart.length ? (
+              <p>
+                Your cart is empty. <a href="/store">Browse items ↗</a>
+              </p>
+            ) : (
+              <>
+                <div className="cart-lines">
+                  {lines.map((l) => (
+                    <article key={l.id}>
+                      <h3>
+                        {l.product?.title ||
+                          (loading
+                            ? "Loading item…"
+                            : "Item no longer available")}
+                      </h3>
+                      <label>
+                        Quantity
+                        <input
+                          aria-label={`Quantity for ${l.product?.title || "item"}`}
+                          type="number"
+                          min={1}
+                          max={25}
+                          value={l.quantity}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            if (Number.isInteger(n) && n >= 1 && n <= 25)
+                              change(
+                                cart.map((c) =>
+                                  c.id === l.id ? { ...c, quantity: n } : c,
+                                ),
+                              );
+                          }}
+                        />
+                      </label>
+                      <span>
+                        {l.product
+                          ? money(l.product.priceCents * l.quantity)
+                          : "Unavailable"}
+                      </span>
+                      <button
+                        onClick={() =>
+                          change(cart.filter((c) => c.id !== l.id))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </article>
+                  ))}
+                </div>
+                <p className="cart-total">Total: {money(total)}</p>
+                {invalid && !loading && (
+                  <p role="alert">Remove unavailable items before checkout.</p>
+                )}
+                {page === "cart" && (
+                  <a className="frontier-button" href="/store/checkout">
+                    Continue to checkout ↗
+                  </a>
+                )}
+                {page === "checkout" &&
+                  (sessionLoading ? (
+                    <p>Checking your account…</p>
+                  ) : !user ? (
+                    <>
+                      <p>
+                        Sign in before reserving your items. Your cart will stay
+                        here.
+                      </p>
+                      <a href="/store/login">Sign in / create account ↗</a>
+                    </>
+                  ) : (
+                    <form className="checkout-form" onSubmit={checkout}>
+                      <label>
+                        Name
+                        <input name="name" required maxLength={100} />
+                      </label>
+                      <label>
+                        Phone or email
+                        <input
+                          name="contact"
+                          required
+                          maxLength={254}
+                          defaultValue={user.email || ""}
+                        />
+                      </label>
+                      <label>
+                        Size / collection notes
+                        <textarea name="note" maxLength={1000} />
+                      </label>
+                      <p>
+                        Reservations last 24 hours from submission. Wait for
+                        staff confirmation before paying. Timely payment proof
+                        stays pending review after the deadline. Unpaid
+                        reservations expire automatically.
+                      </p>
+                      <button
+                        className="frontier-button"
+                        disabled={busy || invalid || loading || !!error}
+                      >
+                        {busy ? "Submitting…" : "Reserve items for 24 hours ↗"}
+                      </button>
+                    </form>
+                  ))}
+              </>
+            )}
+          </>
+        )}
+        {page === "login" &&
+          (user ? (
             <div className="store-signed-in">
               <span>Signed in as {user.email}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  void signOut(auth);
-                }}
-              >
-                Sign out
-              </button>
+              <a href="/store/checkout">Continue to checkout ↗</a>
+              <button onClick={() => void signOut(auth)}>Sign out</button>
             </div>
+          ) : (
+            <CustomerSignIn />
+          ))}
+        {page === "orders" &&
+          (sessionLoading ? (
+            <p>Checking your account…</p>
+          ) : user ? (
             <MyOrders key={user.uid} ownerId={user.uid} products={items} />
-          </>
-        ) : (
-          <CustomerSignIn />
+          ) : (
+            <>
+              <p>Sign in to view your private bookings and payment proofs.</p>
+              <a href="/store/login">Sign in ↗</a>
+            </>
+          ))}
+        {page === "policies" && (
+          <div className="store-policy">
+            <h2>Booking & payment</h2>
+            <p>
+              A booking requests availability. Staff must confirm your items
+              before you transfer payment using the published item instructions.
+              You can upload a private JPEG, PNG or PDF receipt from your
+              bookings page. A receipt is reviewed against bank records before
+              payment is verified.
+            </p>
+            <h3>24-hour reservations</h3>
+            <p>
+              The window starts when the booking is submitted. Unpaid bookings
+              expire at the deadline. Payment proofs submitted within that
+              window remain awaiting verification; rejected proofs can only be
+              resubmitted before the original deadline. Place a new booking if
+              your reservation expires.
+            </p>
+            <h3>Collection, delivery & returns</h3>
+            <p>
+              Arrange collection and confirm any delivery or returns terms with
+              the symposium store team before payment. Follow the staff note
+              attached to your booking.
+            </p>
+            <h3>Payment methods</h3>
+            <p>
+              Use the bank/payment instructions attached to a confirmed item.
+              Online card checkout is unavailable until an approved gateway is
+              configured. This website does not collect card details or banking
+              PINs.
+            </p>
+          </div>
         )}
       </div>
     </section>

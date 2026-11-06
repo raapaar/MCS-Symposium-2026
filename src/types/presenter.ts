@@ -24,6 +24,7 @@ export interface Presenter {
   topic: string;
   projectDescription: string;
   projectUrl: string;
+  projectLogoUrl?: string;
 
   // Presenter profile image
   imageUrl: string;

@@ -1,180 +1,120 @@
-import {
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-
-import { db } from "../services/firebase";
-
+import { useEffect, useState } from "react";
+import { useLiveCollection } from "../hooks/useLiveCollection";
+import { useMotionPreference } from "../hooks/useMotionPreference";
 interface GalleryRecord {
   id: string;
   title: string;
   description: string;
   image: string;
-  category: string;
   order: number;
-  published: boolean;
 }
-
-function Gallery() {
-  const [items, setItems] = useState<
-    GalleryRecord[]
-  >([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
+export default function Gallery() {
+  const { items, loading, error } = useLiveCollection<GalleryRecord>("gallery");
+  const slides = items
+    .filter((i) => i.image)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  const [index, setIndex] = useState(0),
+    [paused, pause] = useState(false),
+    [open, setOpen] = useState(false),
+    [engaged, engage] = useState(false);
+  const reduced = useMotionPreference();
+  const current = slides.length ? index % slides.length : 0;
   useEffect(() => {
-    async function loadGallery() {
-      try {
-        setLoading(true);
-        setError("");
-
-        const galleryQuery = query(
-          collection(db, "gallery"),
-          where("published", "==", true),
-        );
-
-        const snapshot =
-          await getDocs(galleryQuery);
-
-        const publishedItems: GalleryRecord[] =
-          snapshot.docs
-            .map((item) => {
-              const data = item.data();
-
-              return {
-                id: item.id,
-                title: data.title ?? "",
-                description:
-                  data.description ?? "",
-                image: data.image ?? "",
-                category:
-                  data.category ?? "",
-                order:
-                  typeof data.order ===
-                  "number"
-                    ? data.order
-                    : 0,
-                published:
-                  data.published === true,
-              };
-            })
-            .sort(
-              (a, b) =>
-                a.order - b.order,
-            );
-
-        setItems(publishedItems);
-      } catch (loadError) {
-        console.error(loadError);
-
-        setError(
-          "Unable to load gallery items at this time.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void loadGallery();
-  }, []);
-
+    if (paused || open || engaged || reduced || slides.length < 2) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setIndex((i) => i + 1);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [paused, open, engaged, reduced, slides.length]);
   return (
-    <section
-      className="gallery-section"
-      id="gallery"
-    >
+    <section id="gallery" className="gallery-section">
       <div className="section-container">
-        <div className="section-heading">
-          <span className="section-eyebrow">
-            Event Highlights
-          </span>
-
-          <h2>Gallery</h2>
-
-          <p>
-            Explore highlights from the
-            Mathematics and Computing Science
-            Department and MCS Symposium 2026.
-          </p>
-        </div>
-
-        {loading && (
-          <div className="schedule-message">
-            Loading gallery...
-          </div>
+        <p className="section-eyebrow">THE MOMENTS</p>
+        <h2>Gallery</h2>
+        {loading && <p>Loading gallery…</p>}
+        {error && <p role="alert">{error}</p>}
+        {!loading && !error && !slides.length && (
+          <p>No gallery images are currently available.</p>
         )}
-
-        {error && (
-          <div className="schedule-message schedule-message-error">
-            {error}
-          </div>
-        )}
-
-        {!loading &&
-          !error &&
-          items.length === 0 && (
-            <div className="schedule-message">
-              No gallery images are currently
-              available.
-            </div>
-          )}
-
-        {!loading &&
-          !error &&
-          items.length > 0 && (
-            <div className="gallery-grid">
-              {items.map((item) => (
-                <article
-                  className="gallery-card"
-                  key={item.id}
-                >
-                  <div className="gallery-image">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="gallery-image-placeholder">
-                        Image not available
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="gallery-content">
-                    {item.category && (
-                      <span className="gallery-category">
-                        {item.category}
-                      </span>
-                    )}
-
-                    <h3>{item.title}</h3>
-
-                    {item.description && (
-                      <p>
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-                </article>
+        {!!slides.length && (
+          <div
+            className="gallery-player"
+            onMouseEnter={() => engage(true)}
+            onMouseLeave={() => engage(false)}
+            onFocusCapture={() => engage(true)}
+            onBlurCapture={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget)) engage(false);
+            }}
+          >
+            <div
+              className="gallery-stage"
+              aria-roledescription="carousel"
+              aria-label="Symposium gallery"
+            >
+              {slides.map((s, i) => (
+                <figure key={s.id} hidden={i !== current}>
+                  <img src={s.image} alt={s.title || "Symposium highlight"} loading={i === current ? "eager" : "lazy"} />
+                  <figcaption>
+                    <strong>{s.title}</strong>
+                    <p>{s.description}</p>
+                  </figcaption>
+                </figure>
               ))}
             </div>
-          )}
+            <div className="gallery-navigation">
+              <button
+                aria-label="Previous gallery image"
+                onClick={() => {
+                  setIndex((current + slides.length - 1) % slides.length);
+                  pause(true);
+                }}
+              >
+                ←
+              </button>
+              <button
+                aria-expanded={open}
+                aria-controls="gallery-thumbnails"
+                onClick={() => setOpen(!open)}
+              >
+                Browse all images · {current + 1} / {slides.length}{" "}
+                {open ? "−" : "+"}
+              </button>
+              <button
+                aria-label="Next gallery image"
+                onClick={() => {
+                  setIndex(current + 1);
+                  pause(true);
+                }}
+              >
+                →
+              </button>
+              {!reduced && (
+                <button onClick={() => pause(!paused)}>
+                  {paused ? "Play slideshow" : "Pause slideshow"}
+                </button>
+              )}
+            </div>
+            {open && (
+              <div id="gallery-thumbnails" className="gallery-thumbnails">
+                {slides.map((s, i) => (
+                  <button
+                    key={s.id}
+                    aria-pressed={i === current}
+                    aria-label={`Show ${s.title || `image ${i + 1}`}`}
+                    onClick={() => {
+                      setIndex(i);
+                      pause(true);
+                    }}
+                  >
+                    <img src={s.image} alt="" loading="lazy" />
+                    <span>{s.title || `Image ${i + 1}`}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );
 }
-
-export default Gallery;

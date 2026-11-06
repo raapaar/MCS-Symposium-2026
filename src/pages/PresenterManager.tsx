@@ -29,6 +29,7 @@ interface PresenterForm {
   biography: string;
   projectDescription: string;
   projectUrl: string;
+  projectLogoUrl: string;
   imageUrl: string;
   imagePath: string;
   screenshots: PresenterScreenshot[];
@@ -50,6 +51,7 @@ const emptyForm: PresenterForm = {
   biography: "",
   projectDescription: "",
   projectUrl: "",
+  projectLogoUrl: "",
   imageUrl: "",
   imagePath: "",
   screenshots: [],
@@ -59,24 +61,19 @@ const emptyForm: PresenterForm = {
 };
 
 function PresenterManager() {
-  const [presenters, setPresenters] = useState<
-    PresenterRecord[]
+  const [presenters, setPresenters] = useState<PresenterRecord[]>([]);
+
+  const [form, setForm] = useState<PresenterForm>(emptyForm);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  const [selectedScreenshots, setSelectedScreenshots] = useState<File[]>([]);
+
+  const [removedScreenshotPaths, setRemovedScreenshotPaths] = useState<
+    string[]
   >([]);
-
-  const [form, setForm] =
-    useState<PresenterForm>(emptyForm);
-
-  const [editingId, setEditingId] =
-    useState<string | null>(null);
-
-  const [selectedImage, setSelectedImage] =
-    useState<File | null>(null);
-
-  const [selectedScreenshots, setSelectedScreenshots] =
-    useState<File[]>([]);
-
-  const [removedScreenshotPaths, setRemovedScreenshotPaths] =
-    useState<string[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,11 +90,10 @@ function PresenterManager() {
         orderBy("order", "asc"),
       );
 
-      const snapshot =
-        await getDocs(presentersQuery);
+      const snapshot = await getDocs(presentersQuery);
 
-      const loadedPresenters: PresenterRecord[] =
-        snapshot.docs.map((presenterDoc) => {
+      const loadedPresenters: PresenterRecord[] = snapshot.docs.map(
+        (presenterDoc) => {
           const data = presenterDoc.data();
 
           return {
@@ -115,6 +111,7 @@ function PresenterManager() {
             biography: data.biography ?? "",
             projectDescription: data.projectDescription ?? "",
             projectUrl: data.projectUrl ?? "",
+            projectLogoUrl: data.projectLogoUrl ?? "",
             imageUrl: data.imageUrl ?? "",
             imagePath: data.imagePath ?? "",
             screenshots: Array.isArray(data.screenshots)
@@ -130,7 +127,8 @@ function PresenterManager() {
             order: Number(data.order ?? 0),
             published: data.published === true,
           };
-        });
+        },
+      );
 
       setPresenters(loadedPresenters);
     } catch {
@@ -141,7 +139,9 @@ function PresenterManager() {
   };
 
   useEffect(() => {
-    const request = window.setTimeout(() => { void loadPresenters(); }, 0);
+    const request = window.setTimeout(() => {
+      void loadPresenters();
+    }, 0);
     return () => window.clearTimeout(request);
   }, []);
 
@@ -167,32 +167,23 @@ function PresenterManager() {
     setEditingId(null);
   };
 
-  const handleImageChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError("");
 
-    const file =
-      event.target.files?.[0] ?? null;
+    const file = event.target.files?.[0] ?? null;
 
     if (!file) {
       setSelectedImage(null);
       return;
     }
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
       setSelectedImage(null);
       event.target.value = "";
 
-      setError(
-        "Presenter image must be JPEG, PNG, or WebP.",
-      );
+      setError("Presenter image must be JPEG, PNG, or WebP.");
 
       return;
     }
@@ -203,9 +194,7 @@ function PresenterManager() {
       setSelectedImage(null);
       event.target.value = "";
 
-      setError(
-        "Presenter image must not exceed 5 MB.",
-      );
+      setError("Presenter image must not exceed 5 MB.");
 
       return;
     }
@@ -225,11 +214,7 @@ function PresenterManager() {
       return;
     }
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
     const maxSize = 5 * 1024 * 1024;
 
@@ -261,15 +246,11 @@ function PresenterManager() {
     }));
 
     setRemovedScreenshotPaths((currentPaths) =>
-      currentPaths.includes(path)
-        ? currentPaths
-        : [...currentPaths, path],
+      currentPaths.includes(path) ? currentPaths : [...currentPaths, path],
     );
   };
 
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setError("");
@@ -297,13 +278,9 @@ function PresenterManager() {
 
     if (
       form.linkedinUrl.trim() &&
-      !/^https:\/\/(www\.)?linkedin\.com\/.+/i.test(
-        form.linkedinUrl.trim(),
-      )
+      !/^https:\/\/(www\.)?linkedin\.com\/.+/i.test(form.linkedinUrl.trim())
     ) {
-      setError(
-        "LinkedIn URL must be a valid https://linkedin.com/ address.",
-      );
+      setError("LinkedIn URL must be a valid https://linkedin.com/ address.");
 
       return;
     }
@@ -327,11 +304,10 @@ function PresenterManager() {
       let imagePath = form.imagePath;
 
       if (selectedImage) {
-        const uploadResult =
-          await storageProvider.uploadFile(
-            selectedImage,
-            "presenters",
-          );
+        const uploadResult = await storageProvider.uploadFile(
+          selectedImage,
+          "presenters",
+        );
 
         newImagePath = uploadResult.path;
 
@@ -346,11 +322,10 @@ function PresenterManager() {
       const uploadedScreenshots: PresenterScreenshot[] = [];
 
       for (const screenshot of selectedScreenshots) {
-        const uploadResult =
-          await storageProvider.uploadFile(
-            screenshot,
-            "presenters",
-          );
+        const uploadResult = await storageProvider.uploadFile(
+          screenshot,
+          "presenters",
+        );
 
         newScreenshotPaths.push(uploadResult.path);
         uploadedScreenshots.push({
@@ -359,10 +334,7 @@ function PresenterManager() {
         });
       }
 
-      const screenshots = [
-        ...form.screenshots,
-        ...uploadedScreenshots,
-      ];
+      const screenshots = [...form.screenshots, ...uploadedScreenshots];
 
       const presenterData = {
         name: form.name.trim(),
@@ -373,6 +345,7 @@ function PresenterManager() {
         biography: form.biography.trim(),
         projectDescription: form.projectDescription.trim(),
         projectUrl: form.projectUrl.trim(),
+        projectLogoUrl: form.projectLogoUrl.trim(),
         imageUrl,
         imagePath,
         screenshots,
@@ -382,33 +355,18 @@ function PresenterManager() {
       };
 
       if (editingId) {
-        await updateDoc(
-          doc(db, "presenters", editingId),
-          presenterData,
-        );
+        await updateDoc(doc(db, "presenters", editingId), presenterData);
 
-        setMessage(
-          "Presenter updated successfully.",
-        );
+        setMessage("Presenter updated successfully.");
       } else {
-        await addDoc(
-          collection(db, "presenters"),
-          presenterData,
-        );
+        await addDoc(collection(db, "presenters"), presenterData);
 
-        setMessage(
-          "Presenter added successfully.",
-        );
+        setMessage("Presenter added successfully.");
       }
 
-      if (
-        oldImagePathToDelete &&
-        oldImagePathToDelete !== imagePath
-      ) {
+      if (oldImagePathToDelete && oldImagePathToDelete !== imagePath) {
         try {
-          await storageProvider.deleteFile(
-            oldImagePathToDelete,
-          );
+          await storageProvider.deleteFile(oldImagePathToDelete);
         } catch (deleteError) {
           console.error(
             "Old presenter image could not be deleted:",
@@ -431,21 +389,13 @@ function PresenterManager() {
       resetForm();
       await loadPresenters();
     } catch (saveError) {
-      console.error(
-        "Unable to save presenter:",
-        saveError,
-      );
+      console.error("Unable to save presenter:", saveError);
 
       if (newImagePath) {
         try {
-          await storageProvider.deleteFile(
-            newImagePath,
-          );
+          await storageProvider.deleteFile(newImagePath);
         } catch (cleanupError) {
-          console.error(
-            "Uploaded image cleanup failed:",
-            cleanupError,
-          );
+          console.error("Uploaded image cleanup failed:", cleanupError);
         }
       }
 
@@ -453,10 +403,7 @@ function PresenterManager() {
         try {
           await storageProvider.deleteFile(path);
         } catch (cleanupError) {
-          console.error(
-            "Uploaded screenshot cleanup failed:",
-            cleanupError,
-          );
+          console.error("Uploaded screenshot cleanup failed:", cleanupError);
         }
       }
 
@@ -470,9 +417,7 @@ function PresenterManager() {
     }
   };
 
-  const handleEdit = (
-    presenter: PresenterRecord,
-  ) => {
+  const handleEdit = (presenter: PresenterRecord) => {
     setEditingId(presenter.id);
 
     setForm({
@@ -484,6 +429,7 @@ function PresenterManager() {
       biography: presenter.biography,
       projectDescription: presenter.projectDescription,
       projectUrl: presenter.projectUrl,
+      projectLogoUrl: presenter.projectLogoUrl || "",
       imageUrl: presenter.imageUrl,
       imagePath: presenter.imagePath,
       screenshots: presenter.screenshots,
@@ -499,12 +445,8 @@ function PresenterManager() {
     setError("");
   };
 
-  const handleDelete = async (
-    presenter: PresenterRecord,
-  ) => {
-    const confirmed = window.confirm(
-      "Delete this presenter?",
-    );
+  const handleDelete = async (presenter: PresenterRecord) => {
+    const confirmed = window.confirm("Delete this presenter?");
 
     if (!confirmed) {
       return;
@@ -514,20 +456,13 @@ function PresenterManager() {
     setMessage("");
 
     try {
-      await deleteDoc(
-        doc(db, "presenters", presenter.id),
-      );
+      await deleteDoc(doc(db, "presenters", presenter.id));
 
       if (presenter.imagePath) {
         try {
-          await storageProvider.deleteFile(
-            presenter.imagePath,
-          );
+          await storageProvider.deleteFile(presenter.imagePath);
         } catch (deleteError) {
-          console.error(
-            "Presenter image could not be deleted:",
-            deleteError,
-          );
+          console.error("Presenter image could not be deleted:", deleteError);
         }
       }
 
@@ -549,19 +484,14 @@ function PresenterManager() {
     }
   };
 
-  const handlePublishToggle = async (
-    presenter: PresenterRecord,
-  ) => {
+  const handlePublishToggle = async (presenter: PresenterRecord) => {
     setError("");
     setMessage("");
 
     try {
-      await updateDoc(
-        doc(db, "presenters", presenter.id),
-        {
-          published: !presenter.published,
-        },
-      );
+      await updateDoc(doc(db, "presenters", presenter.id), {
+        published: !presenter.published,
+      });
 
       setMessage(
         presenter.published
@@ -571,9 +501,7 @@ function PresenterManager() {
 
       await loadPresenters();
     } catch {
-      setError(
-        "Unable to update presenter publication status.",
-      );
+      setError("Unable to update presenter publication status.");
     }
   };
 
@@ -581,9 +509,7 @@ function PresenterManager() {
     <div className="admin-dashboard">
       <header className="admin-dashboard-header">
         <div>
-          <p className="section-eyebrow">
-            MCS Symposium 2026
-          </p>
+          <p className="section-eyebrow">MCS Symposium 2026</p>
 
           <h1>Presenter Manager</h1>
         </div>
@@ -592,8 +518,7 @@ function PresenterManager() {
           type="button"
           className="admin-logout-button"
           onClick={() => {
-            window.location.href =
-              "/admin/dashboard";
+            window.location.href = "/admin/dashboard";
           }}
         >
           ← Dashboard
@@ -602,33 +527,21 @@ function PresenterManager() {
 
       <main className="admin-dashboard-main">
         <section className="admin-welcome">
-          <p className="section-eyebrow">
-            Symposium Presenters
-          </p>
+          <p className="section-eyebrow">Symposium Presenters</p>
 
-          <h2>
-            {editingId
-              ? "Edit Presenter"
-              : "Add Presenter"}
-          </h2>
+          <h2>{editingId ? "Edit Presenter" : "Add Presenter"}</h2>
 
           <p>
-            Add and manage presenter information.
-            Keep records as drafts until official
-            presenter details are confirmed.
+            Add and manage presenter information. Keep records as drafts until
+            official presenter details are confirmed.
           </p>
         </section>
 
         <section className="admin-form-section">
-          <form
-            onSubmit={handleSubmit}
-            className="admin-management-form"
-          >
+          <form onSubmit={handleSubmit} className="admin-management-form">
             <div className="admin-form-grid">
               <div className="admin-form-group">
-                <label htmlFor="presenter-name">
-                  Name
-                </label>
+                <label htmlFor="presenter-name">Name</label>
 
                 <input
                   id="presenter-name"
@@ -636,19 +549,14 @@ function PresenterManager() {
                   placeholder="Presenter Name"
                   value={form.name}
                   onChange={(event) =>
-                    handleInputChange(
-                      "name",
-                      event.target.value,
-                    )
+                    handleInputChange("name", event.target.value)
                   }
                   required
                 />
               </div>
 
               <div className="admin-form-group">
-                <label htmlFor="presenter-role">
-                  Role / Position
-                </label>
+                <label htmlFor="presenter-role">Role / Position</label>
 
                 <input
                   id="presenter-role"
@@ -656,19 +564,14 @@ function PresenterManager() {
                   placeholder="Academic / Researcher"
                   value={form.role}
                   onChange={(event) =>
-                    handleInputChange(
-                      "role",
-                      event.target.value,
-                    )
+                    handleInputChange("role", event.target.value)
                   }
                   required
                 />
               </div>
 
               <div className="admin-form-group">
-                <label htmlFor="presenter-speaker-type">
-                  Speaker Type
-                </label>
+                <label htmlFor="presenter-speaker-type">Speaker Type</label>
 
                 <select
                   id="presenter-speaker-type"
@@ -687,9 +590,7 @@ function PresenterManager() {
               </div>
 
               <div className="admin-form-group">
-                <label htmlFor="presenter-category">
-                  Category
-                </label>
+                <label htmlFor="presenter-category">Category</label>
 
                 <input
                   id="presenter-category"
@@ -697,19 +598,14 @@ function PresenterManager() {
                   placeholder="Featured Presenter"
                   value={form.category}
                   onChange={(event) =>
-                    handleInputChange(
-                      "category",
-                      event.target.value,
-                    )
+                    handleInputChange("category", event.target.value)
                   }
                   required
                 />
               </div>
 
               <div className="admin-form-group">
-                <label htmlFor="presenter-order">
-                  Display Order
-                </label>
+                <label htmlFor="presenter-order">Display Order</label>
 
                 <input
                   id="presenter-order"
@@ -717,18 +613,13 @@ function PresenterManager() {
                   min="1"
                   value={form.order}
                   onChange={(event) =>
-                    handleInputChange(
-                      "order",
-                      Number(event.target.value),
-                    )
+                    handleInputChange("order", Number(event.target.value))
                   }
                 />
               </div>
 
               <div className="admin-form-group admin-form-full">
-                <label htmlFor="presenter-topic">
-                  Presentation Topic
-                </label>
+                <label htmlFor="presenter-topic">Presentation Topic</label>
 
                 <input
                   id="presenter-topic"
@@ -736,19 +627,14 @@ function PresenterManager() {
                   placeholder="Presentation topic"
                   value={form.topic}
                   onChange={(event) =>
-                    handleInputChange(
-                      "topic",
-                      event.target.value,
-                    )
+                    handleInputChange("topic", event.target.value)
                   }
                   required
                 />
               </div>
 
               <div className="admin-form-group admin-form-full">
-                <label htmlFor="presenter-biography">
-                  Biography
-                </label>
+                <label htmlFor="presenter-biography">Biography</label>
 
                 <textarea
                   id="presenter-biography"
@@ -756,10 +642,7 @@ function PresenterManager() {
                   placeholder="Short presenter biography"
                   value={form.biography}
                   onChange={(event) =>
-                    handleInputChange(
-                      "biography",
-                      event.target.value,
-                    )
+                    handleInputChange("biography", event.target.value)
                   }
                 />
               </div>
@@ -775,10 +658,7 @@ function PresenterManager() {
                   placeholder="Describe the project, problem, approach, features, results, or presentation in detail."
                   value={form.projectDescription}
                   onChange={(event) =>
-                    handleInputChange(
-                      "projectDescription",
-                      event.target.value,
-                    )
+                    handleInputChange("projectDescription", event.target.value)
                   }
                 />
               </div>
@@ -794,18 +674,47 @@ function PresenterManager() {
                   placeholder="https://..."
                   value={form.projectUrl}
                   onChange={(event) =>
-                    handleInputChange(
-                      "projectUrl",
-                      event.target.value,
-                    )
+                    handleInputChange("projectUrl", event.target.value)
                   }
                 />
               </div>
 
               <div className="admin-form-group admin-form-full">
-                <label htmlFor="presenter-image">
-                  Presenter Image
+                <label htmlFor="project-logo-url">Project logo URL</label>
+                <input
+                  id="project-logo-url"
+                  type="text"
+                  pattern="https://.*|/api/storage/file/presenters.*"
+                  value={form.projectLogoUrl}
+                  onChange={(e) =>
+                    handleInputChange("projectLogoUrl", e.target.value)
+                  }
+                  placeholder="https://..."
+                />
+                <label>
+                  Upload project logo
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 5 * 1024 * 1024) {
+                        setError("Choose a logo under 5 MB.");
+                        return;
+                      }
+                      void storageProvider
+                        .uploadFile(file, "presenters")
+                        .then((result) =>
+                          handleInputChange("projectLogoUrl", result.url),
+                        )
+                        .catch(() => setError("Logo upload failed."));
+                    }}
+                  />
                 </label>
+              </div>
+              <div className="admin-form-group admin-form-full">
+                <label htmlFor="presenter-image">Presenter Image</label>
 
                 <input
                   id="presenter-image"
@@ -814,37 +723,30 @@ function PresenterManager() {
                   onChange={handleImageChange}
                 />
 
-                <small>
-                  JPEG, PNG, or WebP. Maximum
-                  file size: 5 MB.
-                </small>
+                <small>JPEG, PNG, or WebP. Maximum file size: 5 MB.</small>
 
                 {selectedImage && (
                   <p>
-                    Selected:{" "}
-                    <strong>
-                      {selectedImage.name}
-                    </strong>
+                    Selected: <strong>{selectedImage.name}</strong>
                   </p>
                 )}
 
-                {!selectedImage &&
-                  form.imageUrl && (
-                    <div>
-                      <p>Current image:</p>
+                {!selectedImage && form.imageUrl && (
+                  <div>
+                    <p>Current image:</p>
 
-                      <img
-                        src={form.imageUrl}
-                        alt="Current presenter"
-                        style={{
-                          width: "120px",
-                          height: "120px",
-                          objectFit: "cover",
-                          borderRadius: "8px",
-                        }}
-                      />
-                    </div>
-                  )}
+                    <img
+                      src={form.imageUrl}
+                      alt="Current presenter"
+                      style={{
+                        width: "120px",
+                        height: "120px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="admin-form-group admin-form-full">
@@ -861,8 +763,8 @@ function PresenterManager() {
                 />
 
                 <small>
-                  Select one or more JPEG, PNG, or WebP images.
-                  Maximum 5 MB per screenshot.
+                  Select one or more JPEG, PNG, or WebP images. Maximum 5 MB per
+                  screenshot.
                 </small>
 
                 {selectedScreenshots.length > 0 && (
@@ -899,9 +801,7 @@ function PresenterManager() {
                           type="button"
                           className="admin-danger-button"
                           onClick={() =>
-                            removeExistingScreenshot(
-                              screenshot.path,
-                            )
+                            removeExistingScreenshot(screenshot.path)
                           }
                           disabled={saving}
                           style={{ marginTop: "8px" }}
@@ -915,9 +815,7 @@ function PresenterManager() {
               </div>
 
               <div className="admin-form-group">
-                <label htmlFor="presenter-linkedin">
-                  LinkedIn Profile URL
-                </label>
+                <label htmlFor="presenter-linkedin">LinkedIn Profile URL</label>
 
                 <input
                   id="presenter-linkedin"
@@ -925,10 +823,7 @@ function PresenterManager() {
                   placeholder="https://www.linkedin.com/in/..."
                   value={form.linkedinUrl}
                   onChange={(event) =>
-                    handleInputChange(
-                      "linkedinUrl",
-                      event.target.value,
-                    )
+                    handleInputChange("linkedinUrl", event.target.value)
                   }
                 />
               </div>
@@ -939,22 +834,15 @@ function PresenterManager() {
                 type="checkbox"
                 checked={form.published}
                 onChange={(event) =>
-                  handleInputChange(
-                    "published",
-                    event.target.checked,
-                  )
+                  handleInputChange("published", event.target.checked)
                 }
               />
 
-              <span>
-                Publish this presenter immediately
-              </span>
+              <span>Publish this presenter immediately</span>
             </label>
 
             {error && (
-              <div className="admin-message admin-message-error">
-                {error}
-              </div>
+              <div className="admin-message admin-message-error">{error}</div>
             )}
 
             {message && (
@@ -995,9 +883,7 @@ function PresenterManager() {
         <section className="admin-schedule-section">
           <div className="admin-section-header">
             <div>
-              <p className="section-eyebrow">
-                Current Presenters
-              </p>
+              <p className="section-eyebrow">Current Presenters</p>
 
               <h2>Presenter List</h2>
             </div>
@@ -1019,16 +905,11 @@ function PresenterManager() {
           {loading ? (
             <p>Loading presenters...</p>
           ) : presenters.length === 0 ? (
-            <p>
-              No presenters have been added yet.
-            </p>
+            <p>No presenters have been added yet.</p>
           ) : (
             <div className="admin-schedule-list">
               {presenters.map((presenter) => (
-                <article
-                  key={presenter.id}
-                  className="admin-schedule-card"
-                >
+                <article key={presenter.id} className="admin-schedule-card">
                   <div className="admin-schedule-card-time">
                     {presenter.order}
                   </div>
@@ -1050,9 +931,7 @@ function PresenterManager() {
                             : "admin-status admin-status-draft"
                         }
                       >
-                        {presenter.published
-                          ? "Published"
-                          : "Draft"}
+                        {presenter.published ? "Published" : "Draft"}
                       </span>
                     </div>
 
@@ -1088,18 +967,14 @@ function PresenterManager() {
                     )}
 
                     {presenter.linkedinUrl && (
-                      <small>
-                        LinkedIn profile added
-                      </small>
+                      <small>LinkedIn profile added</small>
                     )}
 
                     <div className="admin-schedule-actions">
                       <button
                         type="button"
                         className="admin-secondary-button"
-                        onClick={() =>
-                          handleEdit(presenter)
-                        }
+                        onClick={() => handleEdit(presenter)}
                         disabled={saving}
                       >
                         Edit
@@ -1108,24 +983,16 @@ function PresenterManager() {
                       <button
                         type="button"
                         className="admin-secondary-button"
-                        onClick={() =>
-                          handlePublishToggle(
-                            presenter,
-                          )
-                        }
+                        onClick={() => handlePublishToggle(presenter)}
                         disabled={saving}
                       >
-                        {presenter.published
-                          ? "Unpublish"
-                          : "Publish"}
+                        {presenter.published ? "Unpublish" : "Publish"}
                       </button>
 
                       <button
                         type="button"
                         className="admin-danger-button"
-                        onClick={() =>
-                          handleDelete(presenter)
-                        }
+                        onClick={() => handleDelete(presenter)}
                         disabled={saving}
                       >
                         Delete
