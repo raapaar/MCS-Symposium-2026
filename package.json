@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "dev:qa": "vite --config scripts/qa-vite.config.ts"
+    "dev:qa": "vite --config scripts/qa-vite.config.ts",
+    "build:v2": "node scripts/build-v2.mjs",
+    "deploy:v2": "npm run build:v2 && wrangler deploy --config wrangler.v2-dev.jsonc",
+    "dev:v2": "node scripts/build-v2.mjs --serve"
   },
   "dependencies": {
     "firebase": "^12.18.0",
